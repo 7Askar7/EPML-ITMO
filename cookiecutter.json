@@ -1,0 +1,17 @@
+{
+    "project_name": "Wine Quality ML",
+    "project_slug": "wine-quality-ml",
+    "author_name": "ITMO EPML Student",
+    "author_email": "student@example.com",
+    "description": "ML project for wine quality prediction with MLOps best practices",
+    "python_version": "3.11",
+    "open_source_license": "MIT",
+    "use_poetry": "yes",
+    "use_docker": "yes",
+    "use_pre_commit": "yes",
+    "use_black": "yes",
+    "use_ruff": "yes",
+    "use_mypy": "yes",
+    "ml_framework": "scikit-learn",
+    "dataset": "Wine Quality"
+}

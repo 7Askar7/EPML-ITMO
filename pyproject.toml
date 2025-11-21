@@ -1,0 +1,156 @@
+[tool.poetry]
+name = "wine-quality-ml"
+version = "0.1.0"
+description = "ML project for wine quality prediction with MLOps best practices"
+authors = ["ITMO EPML Student <student@example.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "3.11.*"
+pandas = "2.2.3"
+scikit-learn = "1.5.2"
+numpy = "2.1.3"
+matplotlib = "3.9.2"
+seaborn = "0.13.2"
+jupyter = "1.1.1"
+
+[tool.poetry.group.dev.dependencies]
+# Code formatting and linting
+black = "24.10.0"
+isort = "5.13.2"
+ruff = "0.7.4"
+mypy = "1.13.0"
+bandit = "1.8.0"
+
+# Testing
+pytest = "8.3.3"
+pytest-cov = "6.0.0"
+
+# Pre-commit hooks
+pre-commit = "4.0.1"
+
+# Type stubs
+pandas-stubs = "2.2.3.241126"
+types-setuptools = "75.6.0.20241126"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+# Ruff configuration
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "C",     # flake8-comprehensions
+    "B",     # flake8-bugbear
+    "UP",    # pyupgrade
+    "N",     # pep8-naming
+    "ANN",   # flake8-annotations
+    "S",     # bandit
+    "T20",   # flake8-print
+    "SIM",   # flake8-simplify
+    "RET",   # flake8-return
+]
+ignore = [
+    "ANN101",  # Missing type annotation for self in method
+    "ANN102",  # Missing type annotation for cls in classmethod
+    "S101",    # Use of assert detected (allowed in tests)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "ANN"]  # Allow asserts and skip annotations in tests
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_unimported = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+check_untyped_defs = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "sklearn.*",
+    "matplotlib.*",
+    "seaborn.*",
+]
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--cov=src",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+# Bandit configuration
+[tool.bandit]
+exclude_dirs = ["tests", "notebooks"]
+skips = ["B101"]  # Skip assert_used check
