@@ -1,0 +1,22 @@
+schema: '2.0'
+stages:
+  split:
+    cmd: python3 -m src.data.make_dataset
+    deps:
+    - path: data/raw/winequality-red.csv
+      hash: md5
+      md5: 2daeecee174368f8a33b82c8cccae3a5
+      size: 84199
+    - path: src/data/make_dataset.py
+      hash: md5
+      md5: c7fb1e59a27a652aa845ed53d370df8f
+      size: 1703
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 2bf1ec23359214c2dc56574fcb700836
+      size: 18556
+    - path: data/processed/train.csv
+      hash: md5
+      md5: bfde42a7396c6cbd72db5b337a7f2b96
+      size: 73589

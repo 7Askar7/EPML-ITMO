@@ -139,6 +139,7 @@ dmypy.json
 data/raw/*
 data/processed/*
 data/external/*
+!data/raw/*.dvc
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
@@ -154,6 +155,7 @@ models/*.joblib
 
 # Reports and figures
 reports/figures/*
+!reports/figures/*.png
 !reports/figures/.gitkeep
 reports/*.html
 
@@ -163,16 +165,16 @@ reports/*.html
 # Experiment tracking
 mlruns/
 .mlflow/
+mlflow.db
 wandb/
 .neptune/
 
 # DVC
-.dvc/
-*.dvc
+.dvc/cache
+.dvc/tmp
 
 # Docker
 *.log
-.dockerignore
 
 # OS
 Thumbs.db

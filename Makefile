@@ -1,4 +1,4 @@
-.PHONY: install format lint test clean docker-build docker-run help
+.PHONY: install format lint test data train experiments mlflow-ui clean docker-build docker-run help
 
 # Цвета для вывода
 GREEN  := \033[0;32m
@@ -32,6 +32,26 @@ test: ## Запустить тесты
 	@echo "$(GREEN)Запуск тестов...$(RESET)"
 	poetry run pytest tests/ -v --cov=src --cov-report=html --cov-report=term-missing
 	@echo "$(GREEN)✓ Тесты выполнены$(RESET)"
+
+data: ## Обновить данные через DVC (repro + push)
+	@echo "$(GREEN)Пересчитываем пайплайн DVC...$(RESET)"
+	poetry run dvc repro
+	poetry run dvc push
+	@echo "$(GREEN)✓ Данные обновлены и отправлены в remote$(RESET)"
+
+train: ## Обучить модель с MLflow логированием
+	@echo "$(GREEN)Обучение модели...$(RESET)"
+	poetry run python -m src.models.train_model
+	@echo "$(GREEN)✓ Обучение завершено, артефакты в mlruns$(RESET)"
+
+mlflow-ui: ## Запустить MLflow UI (порт 5000)
+	@echo "$(GREEN)Стартуем MLflow UI на http://localhost:5000$(RESET)"
+	poetry run mlflow ui --backend-store-uri sqlite:///mlflow.db --default-artifact-root file:./mlruns --host 0.0.0.0 --port 5000
+
+experiments: ## Запустить пакет из 15+ экспериментов (логирование в MLflow)
+	@echo "$(GREEN)Запускаем серию экспериментов...$(RESET)"
+	poetry run python -m src.models.run_experiments
+	@echo "$(GREEN)✓ Эксперименты залогированы в MLflow$(RESET)"
 
 pre-commit: ## Запустить pre-commit на всех файлах
 	@echo "$(GREEN)Запуск pre-commit hooks...$(RESET)"

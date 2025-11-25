@@ -1,0 +1,94 @@
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Linting caches
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/
+
+# Data (will be mounted as volume)
+data/raw/*
+data/processed/*
+data/external/*
+data/dvc_remote/
+
+# Models (will be mounted as volume)
+models/*.pkl
+models/*.h5
+models/*.pt
+models/*.joblib
+
+# Experiment tracking
+mlruns/
+mlflow.db
+wandb/
+
+# DVC
+.dvc/cache/
+.dvc/tmp/
+
+# Reports and docs
+reports/
+docs/
+*.md
+!README.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Misc
+*.bak
+*.tmp
+

@@ -6,7 +6,7 @@
 - Цель: предсказывать качество вина и показать, как оформить DS-проект по best practices.
 - Датасет: Wine Quality (UCI), разметка `quality`, признаки — физико-химические параметры.
 - Инструменты: Poetry, pre-commit (Black, isort, Ruff, MyPy, Bandit, nbqa), pytest+cov, Docker (multi-stage, non-root).
-- Управление: Makefile для типовых задач, шаблон Cookiecutter и инструкции в docs/REPORT.md.
+- Управление: Makefile для типовых задач, структура по cookiecutter-data-science, инструкции в docs/REPORT.md.
 
 ## Структура
 ```
@@ -20,6 +20,7 @@ EPML-ITMO/
 ├── src/                # Исходный код (data, features, models, visualization)
 ├── tests/              # Тесты pytest
 ├── .pre-commit-config.yaml
+├── .dockerignore       # Игноры для Docker
 ├── Dockerfile
 ├── pyproject.toml
 └── README.md
@@ -30,9 +31,11 @@ EPML-ITMO/
 git clone <repo-url>
 cd EPML-ITMO
 poetry install           # установить зависимости (используются точные версии)
+poetry run dvc pull      # подтянуть данные из локального DVC remote (data/dvc_remote)
 poetry run pre-commit install
 poetry run pre-commit run --all-files
 poetry run pytest -v
+make train               # обучить модель с логированием в MLflow/Model Registry
 ```
 
 ## Основные команды
@@ -40,6 +43,10 @@ poetry run pytest -v
 - `make format` — Black и isort.
 - `make lint` — Ruff + MyPy + Bandit.
 - `make test` — pytest с покрытием.
+- `make data` — `dvc repro` + `dvc push` (данные и сплиты версионируются).
+- `make train` — обучение + логирование метрик/артефактов в MLflow.
+- `make experiments` — серия из 15+ экспериментов с разными моделями (MLflow).
+- `make mlflow-ui` — поднять MLflow UI на `http://localhost:5000`.
 - `make docker-build` / `make docker-run` — собрать/запустить контейнер.
 
 ## Docker
@@ -48,5 +55,28 @@ poetry run pytest -v
 ## Качество кода
 Настройки Black/isort/Ruff/MyPy/Bandit/pytest хранятся в `pyproject.toml`. Pre-commit подтягивает те же инструменты, плюс базовые проверки файлов и nbqa для ноутбуков.
 
-## Шаблон
-`cookiecutter.json` лежит в корне: можно использовать текущий репозиторий как шаблон (`cookiecutter .`) либо вынести его в отдельный каталог для генерации новых проектов со схожей структурой.
+## Версионирование данных и моделей
+- **DVC**: локальный remote `data/dvc_remote` уже содержит кеш с `winequality-red.csv` и сплитами; пайплайн `dvc.yaml` состоит из `import-url` + стадии `split` (`python3 -m src.data.make_dataset`). Используйте `poetry run dvc repro` и `poetry run dvc push`.
+- **MLflow**: локальный backend `sqlite:///mlflow.db` и артефакты в `./mlruns`. Запуск обучения (`make train`) логирует метрики, params и артефакты, регистрирует модель `wine-quality-rf` в Model Registry. UI доступен через `make mlflow-ui`.
+- **Фиксация зависимостей**: все пакеты (включая DVC/MLflow) зафиксированы в `pyproject.toml`/`poetry.lock`.
+
+## Трекинг экспериментов
+- MLflow настроен в коде (`src/models/experiment_tracker.py`), дефолт: SQLite backend `mlflow.db`, артефакты `mlruns/`, эксперимент `wine-quality`.
+- Декоратор/контекст для автологирования — `log_experiment`/`mlflow_run`; утилита `get_data_version` тянет md5 из `dvc.lock` и кладёт в теги.
+- Скрипт `src/models/run_experiments.py` запускает 15+ конфигураций (LogReg, RF, GBoost, SVC, KNN, AdaBoost), логирует метрики/параметры, confusion matrix и отчёт; модели сохраняются как артефакты MLflow.
+- Команда `make experiments` воспроизводит серию; итоговые графики лежат в `reports/figures/` (например, `experiments_summary.png`).
+
+## Шаблон проекта
+Структура проекта основана на [cookiecutter-data-science](https://drivendata.github.io/cookiecutter-data-science/). Файл `cookiecutter.json` содержит метаданные проекта.
+
+**Как использовать как шаблон:**
+1. Склонировать репозиторий
+2. Удалить `.git/` и специфичные данные
+3. Обновить `cookiecutter.json`, `pyproject.toml` и README под новый проект
+4. Инициализировать новый git-репозиторий
+
+Альтернатива — использовать оригинальный cookiecutter-data-science:
+```bash
+pip install cookiecutter
+cookiecutter https://github.com/drivendata/cookiecutter-data-science
+```

@@ -1,0 +1,9 @@
+stages:
+  split:
+    cmd: python3 -m src.data.make_dataset
+    deps:
+    - data/raw/winequality-red.csv
+    - src/data/make_dataset.py
+    outs:
+    - data/processed/test.csv
+    - data/processed/train.csv
