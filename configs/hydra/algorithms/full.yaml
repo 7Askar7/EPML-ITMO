@@ -1,4 +1,5 @@
 name: full
+min_experiments: 15  # для сдачи ДЗ требуется минимум 15
 experiments:
   - name: logreg_c0.5
     estimator: logreg

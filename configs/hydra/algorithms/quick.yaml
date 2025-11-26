@@ -1,4 +1,5 @@
 name: quick
+min_experiments: 1  # quick режим — без ограничения
 experiments:
   - name: logreg_c1
     estimator: logreg

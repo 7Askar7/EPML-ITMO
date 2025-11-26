@@ -314,6 +314,8 @@ def _save_summary_plot() -> Path | None:
 def run_batch(
     experiments: list[ExperimentSpec] | list[dict[str, Any]] | None = None,
     base_tags: dict[str, str] | None = None,
+    *,
+    min_experiments: int = 15,
 ) -> None:
     data_version = get_data_version(PROJECT_DIR / "dvc.lock")
     x_train, y_train, x_test, y_test = _prepare_data(PROJECT_DIR)
@@ -335,8 +337,9 @@ def run_batch(
             for exp in experiments
         ]
 
-    if len(experiment_specs) < 15:
-        raise ValueError("At least 15 experiments are required for the assignment.")
+    if len(experiment_specs) < min_experiments:
+        msg = f"At least {min_experiments} experiments required."
+        raise ValueError(msg)
 
     for spec in experiment_specs:
         model = _build_model(spec.estimator, spec.params)
