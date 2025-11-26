@@ -6,7 +6,7 @@
 - Цель: предсказывать качество вина и показать, как оформить DS-проект по best practices.
 - Датасет: Wine Quality (UCI), разметка `quality`, признаки — физико-химические параметры.
 - Инструменты: Poetry, pre-commit (Black, isort, Ruff, MyPy, Bandit, nbqa), pytest+cov, Docker (multi-stage, non-root).
-- Управление: Makefile для типовых задач, структура по cookiecutter-data-science, инструкции в docs/REPORT.md.
+- Управление: Makefile для типовых задач, структура по cookiecutter-data-science, инструкции в docs/REPORT_HW1.md.
 
 ## Структура
 ```
@@ -94,7 +94,7 @@ git checkout develop && git merge feature/my-feature
 git push origin develop
 ```
 
-Подробнее: [docs/REPORT.md](docs/REPORT.md#git-workflow)
+Подробнее: [docs/REPORT_HW1.md](docs/REPORT_HW1.md#git-workflow)
 
 ## Шаблон проекта
 Структура проекта основана на [cookiecutter-data-science](https://drivendata.github.io/cookiecutter-data-science/). Файл `cookiecutter.json` содержит метаданные проекта.
