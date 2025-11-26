@@ -10,9 +10,19 @@ import mlflow
 import numpy as np
 import pandas as pd
 from mlflow.models import infer_signature
-from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
+from sklearn.base import BaseEstimator
+from sklearn.ensemble import (
+    AdaBoostClassifier,
+    GradientBoostingClassifier,
+    RandomForestClassifier,
+)
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, classification_report, f1_score
+from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    accuracy_score,
+    classification_report,
+    f1_score,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -74,7 +84,9 @@ def _compute_metrics(y_true: pd.Series, y_pred: np.ndarray) -> dict[str, float]:
     }
 
 
-def _prepare_data(project_dir: Path) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
+def _prepare_data(
+    project_dir: Path,
+) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
     processed_dir = project_dir / "data" / "processed"
     train_df, test_df = load_processed_data(processed_dir)
     x_train = train_df.drop("quality", axis=1)
@@ -90,13 +102,14 @@ def _train_validation_split(
     test_size: float = 0.1,
     random_state: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-    return train_test_split(
+    result: tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series] = train_test_split(
         x_train,
         y_train,
         test_size=test_size,
         stratify=y_train,
         random_state=random_state,
     )
+    return result
 
 
 def _default_experiments() -> list[ExperimentSpec]:
@@ -105,23 +118,65 @@ def _default_experiments() -> list[ExperimentSpec]:
         ExperimentSpec("logreg_c0.5", "logreg", {"C": 0.5, "max_iter": 500}),
         ExperimentSpec("logreg_c1", "logreg", {"C": 1.0, "max_iter": 500}),
         ExperimentSpec("logreg_c2", "logreg", {"C": 2.0, "max_iter": 500}),
-        ExperimentSpec("rf_50_depth8", "random_forest", {"n_estimators": 50, "max_depth": 8, "random_state": 42}),
-        ExperimentSpec("rf_100_depth10", "random_forest", {"n_estimators": 100, "max_depth": 10, "random_state": 42}),
-        ExperimentSpec("rf_150_depth12", "random_forest", {"n_estimators": 150, "max_depth": 12, "random_state": 42}),
-        ExperimentSpec("gb_50_lr0.05", "gradient_boosting", {"n_estimators": 50, "learning_rate": 0.05, "random_state": 42}),
-        ExperimentSpec("gb_100_lr0.1", "gradient_boosting", {"n_estimators": 100, "learning_rate": 0.1, "random_state": 42}),
+        ExperimentSpec(
+            "rf_50_depth8",
+            "random_forest",
+            {"n_estimators": 50, "max_depth": 8, "random_state": 42},
+        ),
+        ExperimentSpec(
+            "rf_100_depth10",
+            "random_forest",
+            {"n_estimators": 100, "max_depth": 10, "random_state": 42},
+        ),
+        ExperimentSpec(
+            "rf_150_depth12",
+            "random_forest",
+            {"n_estimators": 150, "max_depth": 12, "random_state": 42},
+        ),
+        ExperimentSpec(
+            "gb_50_lr0.05",
+            "gradient_boosting",
+            {"n_estimators": 50, "learning_rate": 0.05, "random_state": 42},
+        ),
+        ExperimentSpec(
+            "gb_100_lr0.1",
+            "gradient_boosting",
+            {"n_estimators": 100, "learning_rate": 0.1, "random_state": 42},
+        ),
         ExperimentSpec("svc_linear_c1", "svc", {"kernel": "linear", "C": 1.0}),
-        ExperimentSpec("svc_rbf_c1_g01", "svc", {"kernel": "rbf", "C": 1.0, "gamma": 0.1}),
-        ExperimentSpec("svc_rbf_c2_g005", "svc", {"kernel": "rbf", "C": 2.0, "gamma": 0.05}),
-        ExperimentSpec("knn_5_uniform", "knn", {"n_neighbors": 5, "weights": "uniform"}),
-        ExperimentSpec("knn_10_distance", "knn", {"n_neighbors": 10, "weights": "distance"}),
-        ExperimentSpec("ada_50", "adaboost", {"n_estimators": 50, "learning_rate": 0.8, "random_state": 42}),
-        ExperimentSpec("ada_100", "adaboost", {"n_estimators": 100, "learning_rate": 0.6, "random_state": 42}),
-        ExperimentSpec("rf_200_depth14", "random_forest", {"n_estimators": 200, "max_depth": 14, "random_state": 123}),
+        ExperimentSpec(
+            "svc_rbf_c1_g01", "svc", {"kernel": "rbf", "C": 1.0, "gamma": 0.1}
+        ),
+        ExperimentSpec(
+            "svc_rbf_c2_g005", "svc", {"kernel": "rbf", "C": 2.0, "gamma": 0.05}
+        ),
+        ExperimentSpec(
+            "knn_5_uniform", "knn", {"n_neighbors": 5, "weights": "uniform"}
+        ),
+        ExperimentSpec(
+            "knn_10_distance", "knn", {"n_neighbors": 10, "weights": "distance"}
+        ),
+        ExperimentSpec(
+            "ada_50",
+            "adaboost",
+            {"n_estimators": 50, "learning_rate": 0.8, "random_state": 42},
+        ),
+        ExperimentSpec(
+            "ada_100",
+            "adaboost",
+            {"n_estimators": 100, "learning_rate": 0.6, "random_state": 42},
+        ),
+        ExperimentSpec(
+            "rf_200_depth14",
+            "random_forest",
+            {"n_estimators": 200, "max_depth": 14, "random_state": 123},
+        ),
     ]
 
 
-def _make_tags(model_name: str, data_version: str | None, base_tags: dict[str, str] | None = None) -> dict[str, str]:
+def _make_tags(
+    model_name: str, data_version: str | None, base_tags: dict[str, str] | None = None
+) -> dict[str, str]:
     tags: dict[str, str] = {
         "model_name": model_name,
         "pipeline": "run_experiments.py",
@@ -139,31 +194,41 @@ def _save_artifacts(
     y_pred: np.ndarray,
     report: str,
 ) -> list[Path]:
-    cm_path = _save_confusion_matrix(y_true, y_pred, EXPERIMENTS_DIR / f"cm_{run_label}.png")
-    report_path = _write_report(report, EXPERIMENTS_DIR / f"classification_report_{run_label}.txt")
+    cm_path = _save_confusion_matrix(
+        y_true, y_pred, EXPERIMENTS_DIR / f"cm_{run_label}.png"
+    )
+    report_path = _write_report(
+        report, EXPERIMENTS_DIR / f"classification_report_{run_label}.txt"
+    )
     return [cm_path, report_path]
 
 
-def _signature_kwargs(x_train: pd.DataFrame, model: Any) -> dict[str, object]:
+def _signature_kwargs(x_train: pd.DataFrame, model: BaseEstimator) -> dict[str, object]:
     try:
         prediction_sample = model.predict(x_train.head(5))
     except Exception:  # pragma: no cover - fallback for models needing fit first
         prediction_sample = None
     return {
-        "signature": infer_signature(x_train, prediction_sample) if prediction_sample is not None else None,
+        "signature": (
+            infer_signature(x_train, prediction_sample)
+            if prediction_sample is not None
+            else None
+        ),
         "input_example": x_train.head(5),
     }
 
 
-def _build_model(estimator: str, params: dict[str, Any]) -> Any:
+def _build_model(estimator: str, params: dict[str, Any]) -> BaseEstimator:
     if estimator not in MODEL_REGISTRY:
-        raise ValueError(f"Unknown estimator '{estimator}'. Available: {sorted(MODEL_REGISTRY.keys())}")
+        available = sorted(MODEL_REGISTRY.keys())
+        msg = f"Unknown estimator '{estimator}'. Available: {available}"
+        raise ValueError(msg)
     return MODEL_REGISTRY[estimator](**params)
 
 
 def _run_single_experiment(
     spec: ExperimentSpec,
-    model: Any,
+    model: BaseEstimator,
     x_train: pd.DataFrame,
     y_train: pd.Series,
     x_test: pd.DataFrame,
@@ -207,8 +272,12 @@ def _save_summary_plot() -> Path | None:
     if df.empty or "metrics.accuracy" not in df:
         return None
 
-    summary = df[["run_id", "tags.model_name", "metrics.accuracy", "metrics.f1_weighted"]].copy()
-    summary["tags.model_name"] = summary["tags.model_name"].fillna(summary["run_id"].str[:8])
+    summary = df[
+        ["run_id", "tags.model_name", "metrics.accuracy", "metrics.f1_weighted"]
+    ].copy()
+    summary["tags.model_name"] = summary["tags.model_name"].fillna(
+        summary["run_id"].str[:8]
+    )
     summary = summary.dropna(subset=["metrics.accuracy"])
     summary = summary.sort_values("metrics.accuracy", ascending=False)
 
@@ -218,9 +287,11 @@ def _save_summary_plot() -> Path | None:
     summary.head(10).to_csv(csv_path, index=False)
 
     best = summary.iloc[0]
+    model_name = best["tags.model_name"]
+    acc = best["metrics.accuracy"]
+    f1 = best.get("metrics.f1_weighted", float("nan"))
     status_path.write_text(
-        f"Best run: {best['tags.model_name']} (accuracy={best['metrics.accuracy']:.4f}, "
-        f"f1_weighted={best.get('metrics.f1_weighted', float('nan')):.4f})"
+        f"Best run: {model_name} (accuracy={acc:.4f}, f1_weighted={f1:.4f})"
     )
 
     try:
@@ -248,18 +319,20 @@ def run_batch(
     x_train, y_train, x_test, y_test = _prepare_data(PROJECT_DIR)
 
     # Light monitoring artifact
-    x_train_fold, x_val_fold, y_train_fold, y_val_fold = _train_validation_split(x_train, y_train)
+    x_train_fold, x_val_fold, y_train_fold, y_val_fold = _train_validation_split(
+        x_train, y_train
+    )
     fold_metrics_path = EXPERIMENTS_DIR / "val_split_info.txt"
     fold_metrics_path.parent.mkdir(parents=True, exist_ok=True)
-    fold_metrics_path.write_text(
-        f"Train size: {len(x_train_fold)}, Val size: {len(x_val_fold)}, Test size: {len(x_test)}"
-    )
+    info = f"Train: {len(x_train_fold)}, Val: {len(x_val_fold)}, Test: {len(x_test)}"
+    fold_metrics_path.write_text(info)
 
     if experiments is None:
         experiment_specs = _default_experiments()
     else:
         experiment_specs = [
-            exp if isinstance(exp, ExperimentSpec) else ExperimentSpec(**exp) for exp in experiments
+            exp if isinstance(exp, ExperimentSpec) else ExperimentSpec(**exp)
+            for exp in experiments
         ]
 
     if len(experiment_specs) < 15:

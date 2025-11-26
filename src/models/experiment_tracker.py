@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any
 
 import mlflow
 import mlflow.sklearn
-import yaml
+import yaml  # type: ignore[import-untyped]
 from mlflow import MlflowClient
 from sklearn.base import BaseEstimator
 
@@ -30,7 +31,8 @@ def get_data_version(lock_path: Path | None = None) -> str | None:
     split_stage = lock_data.get("stages", {}).get("split", {})
     for dep in split_stage.get("deps", []):
         if dep.get("path") == "data/raw/winequality-red.csv":
-            return dep.get("md5")
+            md5_val: str | None = dep.get("md5")
+            return md5_val
     return None
 
 
@@ -66,7 +68,7 @@ def mlflow_run(
     tracking_uri: str = DEFAULT_TRACKING_URI,
     artifact_location: str = DEFAULT_ARTIFACT_LOCATION,
     tags: dict[str, Any] | None = None,
-):
+) -> Any:  # noqa: ANN401
     """Context manager that opens an MLflow run with common defaults."""
     configure_mlflow(tracking_uri, artifact_location, experiment_name)
     with mlflow.start_run(run_name=run_name, tags=tags) as run:
@@ -95,7 +97,7 @@ def log_experiment(
     """
 
     def decorator(func: Callable[..., dict[str, Any]]) -> Callable[..., dict[str, Any]]:
-        def wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        def wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
             with mlflow_run(
                 run_name=run_name,
                 experiment_name=experiment_name,

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -10,23 +11,34 @@ from omegaconf import DictConfig, OmegaConf
 from src.models.run_experiments import ExperimentSpec, run_batch
 
 
-def _validate_experiments(experiments: Iterable[dict[str, Any]]) -> list[ExperimentSpec]:
+def _validate_experiments(
+    experiments: Iterable[dict[str, Any]],
+) -> list[ExperimentSpec]:
     specs = [ExperimentSpec(**exp) for exp in experiments]
     names = [spec.name for spec in specs]
     if len(set(names)) != len(names):
         duplicates = sorted({name for name in names if names.count(name) > 1})
         raise ValueError(f"Duplicate experiment names found: {duplicates}")
     if len(specs) < 15:
-        raise ValueError("At least 15 experiments are required; check configs/hydra/algorithms/*.yaml.")
+        msg = "At least 15 experiments required; check configs/hydra/algorithms/*.yaml."
+        raise ValueError(msg)
     return specs
 
 
-@hydra.main(config_path="../../configs/hydra", config_name="config", version_base=None)
-def main(cfg: DictConfig) -> None:  # pragma: no cover - exercised via CLI
+@hydra.main(  # type: ignore[misc]
+    config_path="../../configs/hydra",
+    config_name="config",
+    version_base=None,
+)
+def main(cfg: DictConfig) -> None:  # pragma: no cover
     experiments_raw = OmegaConf.to_container(cfg.algorithms.experiments, resolve=True)
-    specs = _validate_experiments(experiments_raw)  # type: ignore[arg-type]
+    specs = _validate_experiments(experiments_raw)
 
-    base_tags = {**OmegaConf.to_container(cfg.base_tags, resolve=True), "config_variant": cfg.algorithms.name}
+    tags_container = OmegaConf.to_container(cfg.base_tags, resolve=True)
+    base_tags: dict[str, Any] = {
+        **(tags_container if isinstance(tags_container, dict) else {}),
+        "config_variant": cfg.algorithms.name,
+    }
     run_batch(experiments=specs, base_tags=base_tags)
 
 
