@@ -72,6 +72,30 @@ make train               # обучить модель с логирование
 - **Конфигурации:** Hydra (`configs/hydra/config.yaml` + алгоритм-группы). Можно менять набор моделей через `algorithms=<variant>` (например, `quick`), валидация уникальности/числа экспериментов в `src/pipelines/run_hydra_pipeline.py`.
 - **Мониторинг:** summary-файлы `experiments_top10.csv`, `status.txt` и график `experiments_summary.png`; MLflow UI для сравнения метрик/артефактов.
 
+## Git Workflow (стратегия ветвления)
+
+Используется упрощённая модель **Git Flow**:
+
+| Ветка | Назначение |
+|-------|------------|
+| `main` | Стабильные релизы |
+| `develop` | Интеграция фич |
+| `feature/*` | Новая функциональность |
+| `fix/*` | Исправление багов |
+| `docs/*` | Документация |
+
+**Пример workflow:**
+```bash
+git checkout develop && git pull
+git checkout -b feature/my-feature    # создать ветку
+# ... разработка ...
+git commit -m "feat: описание"
+git checkout develop && git merge feature/my-feature
+git push origin develop
+```
+
+Подробнее: [docs/REPORT.md](docs/REPORT.md#git-workflow)
+
 ## Шаблон проекта
 Структура проекта основана на [cookiecutter-data-science](https://drivendata.github.io/cookiecutter-data-science/). Файл `cookiecutter.json` содержит метаданные проекта.
 
