@@ -6,41 +6,82 @@
 
 ---
 
-## Что настроено
-- **DVC для данных**: локальный remote `data/dvc_remote` уже содержит кеш датасета `winequality-red.csv` и результатов сплита. Пайплайн `dvc.yaml` → `import-url` + стадия `split` (`python3 -m src.data.make_dataset`) с зависимостями `data/raw/winequality-red.csv` и `src/data/make_dataset.py`, выходами `data/processed/train.csv` и `data/processed/test.csv`.
-- **Автоматическое версионирование**: `dvc repro` пересчитывает и фиксирует изменения в `dvc.lock`, `dvc push` кладёт их в remote (лежит в репо, поэтому воспроизводится офлайн).
-- **MLflow для моделей**: трекинг на `sqlite:///mlflow.db`, артефакты в `./mlruns`. Эксперимент `wine-quality`, зарегистрированная модель `wine-quality-rf` (версия 1). `make train` логирует гиперпараметры, метрику accuracy, текстовый отчёт классификации, тег `data_version_md5` из `dvc.lock`, артефакты модели и регистрирует её в Model Registry.
-- **Команды**: `make data` (DVC repro + push), `make train` (обучение + MLflow), `make mlflow-ui` (UI на `http://localhost:5000`), остальные команды из Makefile работают как прежде.
-- **Зависимости зафиксированы**: DVC, MLflow, PyYAML добавлены в `pyproject.toml`/`poetry.lock` для воспроизводимости.
+## 🚀 Инструкция для ментора: Быстрая проверка
 
-## Воспроизводимость
-1. Python 3.11+. Создать in-project env и поставить Poetry (без глобальных установок):
-   ```bash
-   python3.11 -m venv .venv
-   .venv/bin/pip install --upgrade pip poetry
-   POETRY_VIRTUALENVS_CREATE=false .venv/bin/poetry install
-   ```
-2. Подтянуть данные и пересчитать пайплайн:
-   ```bash
-   poetry run dvc pull      # remote уже внутри репозитория
-   make data                # dvc repro + dvc push
-   ```
-3. Обучить модель с логированием:
-   ```bash
-   make train               # метрики/артефакты в mlruns, модель в Registry
-   make mlflow-ui           # для сравнения версий, порт 5000
-   ```
-4. Проверки и Docker:
-   ```bash
-   make test
-   make docker-build
-   make docker-run          # монтирует ./data и ./models
-   ```
-   Перед сборкой/запуском контейнера убедитесь, что `poetry run dvc pull` выполнен, чтобы в volume `./data` лежали актуальные сплиты.
+```bash
+# 1. Клонировать и перейти в проект (если ещё не сделано)
+git clone https://github.com/7Askar7/EPML-ITMO.git
+cd EPML-ITMO
+
+# 2. Установить зависимости
+poetry install
+
+# 3. Подтянуть данные из DVC (remote уже в репозитории)
+poetry run dvc pull
+
+# 4. Проверить DVC пайплайн (split данных)
+poetry run dvc repro        # пересчитает если что-то изменилось
+poetry run dvc status       # должен показать "Data and calculation are up to date"
+
+# 5. Обучить модель с логированием в MLflow
+make train                  # или: poetry run python -m src.models.train_model
+
+# 6. Посмотреть MLflow UI (метрики, модели, артефакты)
+make mlflow-ui              # откроется на http://localhost:5000
+# Ctrl+C для остановки
+
+# 7. Проверить артефакты
+ls data/processed/          # train.csv, test.csv
+ls models/                  # wine_quality_model.pkl
+ls mlruns/                  # MLflow артефакты
+```
+
+**Ожидаемый результат:**
+- ✅ DVC pull: данные скачиваются из локального remote
+- ✅ DVC repro: пайплайн выполняется (или "up to date")
+- ✅ MLflow: модель залогирована, метрики видны в UI
+- ✅ Model Registry: модель `wine-quality-rf` зарегистрирована
+
+---
+
+## Что настроено
+
+### DVC для данных
+- Локальный remote: `data/dvc_remote` (уже содержит кеш датасета)
+- Пайплайн `dvc.yaml`:
+  - Стадия `split`: `python -m src.data.make_dataset`
+  - Зависимости: `data/raw/winequality-red.csv`, `src/data/make_dataset.py`
+  - Выходы: `data/processed/train.csv`, `data/processed/test.csv`
+- Автоматическое версионирование: `dvc.lock` фиксирует хеши всех файлов
+
+### MLflow для моделей
+- Backend: `sqlite:///mlflow.db`
+- Артефакты: `./mlruns`
+- Эксперимент: `wine-quality`
+- Логируется:
+  - Гиперпараметры (n_estimators, max_depth, random_state)
+  - Метрика accuracy
+  - Classification report (текст)
+  - Тег `data_version_md5` из dvc.lock
+  - Модель в Model Registry (`wine-quality-rf`)
+
+### Команды Makefile
+| Команда | Что делает |
+|---------|------------|
+| `make data` | `dvc repro` + `dvc push` |
+| `make train` | Обучение + логирование в MLflow |
+| `make mlflow-ui` | Запуск MLflow UI на порту 5000 |
 
 ## Скриншоты результатов
-- `reports/figures/dvc_pipeline.png` — схема текущего DVC-пайплайна (import-url → split).
-- `reports/figures/mlflow_run.png` — сводка MLflow-run c метрикой и версией модели в Registry.
+- `reports/figures/dvc_pipeline.png` — схема DVC-пайплайна
+- `reports/figures/mlflow_run.png` — MLflow run с метрикой и моделью в Registry
 
 ## Итог
-Настроены версионирование данных (DVC с локальным remote, пайплайном и lock-файлом) и моделей (MLflow tracking + Model Registry на SQLite). Все шаги воспроизводимы через Poetry и Makefile, данные доступны офлайн из включённого remote, модели логируются и сравниваются через MLflow UI.
+✅ **Выполненные требования:**
+- DVC установлен и настроен с локальным remote
+- Пайплайн версионирования данных (dvc.yaml + dvc.lock)
+- MLflow tracking + Model Registry
+- Метаданные моделей (теги, параметры, метрики)
+- Инструкции по воспроизведению
+- Docker контейнер (из ДЗ1)
+- Зависимости зафиксированы в poetry.lock

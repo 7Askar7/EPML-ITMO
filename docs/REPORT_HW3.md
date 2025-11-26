@@ -6,51 +6,102 @@
 
 ---
 
-## Настройка MLflow
-- Tracking URI: `sqlite:///mlflow.db`, артефакты: `file:./mlruns`.
-- Эксперимент: `wine-quality` (создаётся в `src/models/experiment_tracker.py`), теги включают `data_version_md5` из `dvc.lock`.
-- Декоратор `log_experiment` и контекст `mlflow_run` инкапсулируют открытие run, логирование параметров/метрик/артефактов и, при необходимости, моделей.
-- Аутентификация не требуется (локальный стор). Доступ к UI: `make mlflow-ui` → `http://localhost:5000`.
+## 🚀 Инструкция для ментора: Быстрая проверка
 
-## Проведённые эксперименты
-- Скрипт `src/models/run_experiments.py` запускает 16 конфигураций (LogisticRegression, RandomForest, GradientBoosting, SVC, KNN, AdaBoost) с разными гиперпараметрами.
-- Логируются: accuracy, f1_weighted, параметры модели, confusion matrix (PNG), текст отчёта классификации, артефакт модели (MLflow sklearn flavor). Теги: модель, версия датасета, источник пайплайна.
-- Сравнение: через MLflow UI фильтры (`metrics.accuracy`, `tags.model_name`, `tags.data_version_md5`). Top-10 график — `reports/figures/experiments_summary.png`.
-- Лучший эксперимент на момент отчёта: `rf_150_depth12` — accuracy 0.6813, f1_weighted 0.6669.
+```bash
+# 1. Клонировать и перейти в проект (если ещё не сделано)
+git clone https://github.com/7Askar7/EPML-ITMO.git
+cd EPML-ITMO
+
+# 2. Установить зависимости
+poetry install
+
+# 3. Подтянуть данные
+poetry run dvc pull
+
+# 4. Запустить 16 экспериментов с разными алгоритмами
+make experiments            # или: poetry run python -m src.models.run_experiments
+
+# 5. Посмотреть результаты в MLflow UI
+make mlflow-ui              # http://localhost:5000
+# В UI: выбрать эксперимент "wine-quality", сравнить метрики
+# Ctrl+C для остановки
+
+# 6. Проверить артефакты экспериментов
+ls reports/figures/experiments/
+# Должны быть: cm_*.png (confusion matrices), experiments_summary.png, status.txt
+
+# 7. Посмотреть лучшую модель
+cat reports/figures/experiments/status.txt
+cat reports/figures/experiments/experiments_top10.csv
+```
+
+**Ожидаемый результат:**
+- ✅ 16 экспериментов залогированы в MLflow (LogReg, RF, GBoost, SVC, KNN, AdaBoost)
+- ✅ Каждый эксперимент: accuracy, f1_weighted, параметры, confusion matrix
+- ✅ MLflow UI показывает все эксперименты для сравнения
+- ✅ `status.txt` содержит лучшую модель (rf_150_depth12, accuracy ~0.68)
+- ✅ `experiments_summary.png` — bar chart топ-10 моделей
+
+---
+
+## Настройка MLflow
+- **Tracking URI:** `sqlite:///mlflow.db`
+- **Артефакты:** `file:./mlruns`
+- **Эксперимент:** `wine-quality`
+- **Теги:** `data_version_md5` из dvc.lock, `model_name`, `pipeline`
+
+## Проведённые эксперименты (16 конфигураций)
+
+| Алгоритм | Конфигурации |
+|----------|--------------|
+| LogisticRegression | C=0.5, C=1.0, C=2.0 |
+| RandomForest | depth=8, 10, 12, 14 |
+| GradientBoosting | lr=0.05, lr=0.1 |
+| SVC | linear, rbf (2 варианта) |
+| KNN | k=5, k=10 |
+| AdaBoost | n=50, n=100 |
+
+**Логируется для каждого эксперимента:**
+- Метрики: accuracy, f1_weighted
+- Параметры: все гиперпараметры модели
+- Артефакты: confusion matrix (PNG), classification report (TXT), модель (MLflow sklearn)
+- Теги: model_name, data_version_md5, pipeline
 
 ## Интеграция в код
-- Общие утилиты: `src/models/experiment_tracker.py` (конфигурация MLflow, декоратор/контекст, чтение версии данных).
-- Тренировка основной модели: `src/models/train_model.py` — использует `configure_mlflow`, логирует метрики, отчёт, регистрирует модель `wine-quality-rf` в Model Registry.
-- Серия экспериментов: `src/models/run_experiments.py` — использует `log_experiment`, сохраняет артефакты и метрики автоматически.
 
-## Воспроизводимость
-1. Подготовка окружения:
-   ```bash
-   python3.11 -m venv .venv
-   .venv/bin/pip install --upgrade pip poetry
-   POETRY_VIRTUALENVS_CREATE=false .venv/bin/poetry install
-   ```
-2. Данные:
-   ```bash
-   poetry run dvc pull
-   make data
-   ```
-3. Эксперименты и сравнение:
-   ```bash
-   make experiments            # 15+ run'ов будут залогированы в mlruns
-   make mlflow-ui              # UI на 5000 порту для просмотра/сравнения
-   ```
-4. Проверки/контейнер:
-   ```bash
-   make test
-   make docker-build && make docker-run
-   ```
+### Декоратор `@log_experiment`
+```python
+# src/models/experiment_tracker.py
+@log_experiment(run_name="rf_100", tags={"model": "rf"})
+def train_and_log():
+    model.fit(X, y)
+    return {"params": {...}, "metrics": {"accuracy": 0.68}, "artifacts": [...]}
+```
+
+### Контекстный менеджер `mlflow_run`
+```python
+with mlflow_run(run_name="experiment_1"):
+    mlflow.log_params({...})
+    mlflow.log_metrics({...})
+```
+
+### Утилиты
+- `get_data_version()` — читает md5 из dvc.lock
+- `configure_mlflow()` — настраивает tracking URI и эксперимент
+- `ensure_experiment()` — создаёт эксперимент если не существует
 
 ## Скриншоты
-- `reports/figures/experiments_summary.png` — топ-эксперименты по accuracy.
-- `reports/figures/dvc_pipeline.png` — схема DVC пайплайна данных (из ДЗ2).
-- `reports/figures/mlflow_run.png` — пример MLflow-run и модели в Registry.
-- Примеры confusion matrix для отдельных экспериментов (например, `reports/figures/cm_rf_150_depth12.png`).
+- `reports/figures/experiments/experiments_summary.png` — топ-10 по accuracy
+- `reports/figures/experiments/cm_*.png` — confusion matrix для каждого эксперимента
+- `reports/figures/mlflow_run.png` — пример MLflow run
 
 ## Итог
-Настроен полноценный трекинг экспериментов в MLflow: локальная БД/артефакты, удобные утилиты для автологирования, серия из 15+ запусков с метриками/артефактами и готовым UI для сравнения. Все шаги воспроизводятся командами из Makefile, зависимости зафиксированы в `poetry.lock`.
+✅ **Выполненные требования:**
+- MLflow настроен (локальный SQLite + артефакты)
+- 16 экспериментов с разными алгоритмами
+- Логирование метрик, параметров, артефактов
+- Система сравнения (MLflow UI + experiments_summary.png)
+- Декораторы и контекстные менеджеры для автологирования
+- Утилиты для работы с экспериментами
+- Отчёт со скриншотами

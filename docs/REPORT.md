@@ -6,6 +6,42 @@
 
 ---
 
+## 🚀 Инструкция для ментора: Быстрая проверка
+
+```bash
+# 1. Клонировать и перейти в проект
+git clone https://github.com/7Askar7/EPML-ITMO.git
+cd EPML-ITMO
+
+# 2. Установить Poetry (если не установлен)
+curl -sSL https://install.python-poetry.org | python3 -
+
+# 3. Установить зависимости
+poetry install
+
+# 4. Проверить pre-commit хуки (Black, isort, Ruff, MyPy, Bandit)
+poetry run pre-commit install
+poetry run pre-commit run --all-files
+
+# 5. Проверить линтеры отдельно
+make lint    # или: poetry run ruff check src/ && poetry run mypy src/ && poetry run bandit -r src/
+
+# 6. Запустить тесты с покрытием
+make test    # или: poetry run pytest -v --cov=src
+
+# 7. Проверить Docker (опционально)
+make docker-build
+make docker-run
+```
+
+**Ожидаемый результат:**
+- ✅ Pre-commit: все хуки проходят (Passed)
+- ✅ Lint: нет ошибок Ruff/MyPy/Bandit
+- ✅ Tests: все тесты проходят, покрытие src/
+- ✅ Docker: образ собирается, контейнер запускается
+
+---
+
 ## Содержание
 1. [Структура проекта](#структура-проекта)
 2. [Шаблон проекта](#шаблон-проекта)
@@ -14,8 +50,7 @@
 5. [Контейнеризация](#контейнеризация)
 6. [Git workflow](#git-workflow)
 7. [Скриншоты](#скриншоты)
-8. [Воспроизведение](#воспроизведение)
-9. [Итог](#итог)
+8. [Итог](#итог)
 
 ---
 
@@ -55,12 +90,6 @@ EPML-ITMO/
 2. Удалить `.git/` и специфичные данные проекта.
 3. Инициализировать новый репозиторий.
 4. Обновить `cookiecutter.json`, `pyproject.toml` и README под новый проект.
-
-Альтернативно: использовать оригинальный [cookiecutter-data-science](https://github.com/drivendata/cookiecutter-data-science):
-```bash
-pip install cookiecutter
-cookiecutter https://github.com/drivendata/cookiecutter-data-science
-```
 
 ## Качество кода и pre-commit
 Все конфигурации хранятся в `pyproject.toml`:
@@ -159,27 +188,6 @@ docker run -it --rm -v $(pwd)/data:/app/data -v $(pwd)/models:/app/models wine-q
 
 > **Примечание:** Для генерации скриншотов выполните команды выше и сохраните результат в `reports/figures/`.
 
-## Воспроизведение
-```bash
-# 1. Клонировать репозиторий
-git clone <repo-url>
-cd EPML-ITMO
-
-# 2. Установить зависимости
-poetry install
-
-# 3. Настроить pre-commit
-poetry run pre-commit install
-poetry run pre-commit run --all-files
-
-# 4. Запустить тесты
-poetry run pytest -v --cov=src --cov-report=term-missing
-
-# 5. (Опционально) Docker
-docker build -t wine-quality-ml .
-docker run -it --rm -v $(pwd)/data:/app/data wine-quality-ml
-```
-
 ## Итог
 ✅ **Выполненные требования:**
 - Структура проекта по шаблону cookiecutter-data-science
@@ -191,4 +199,4 @@ docker run -it --rm -v $(pwd)/data:/app/data wine-quality-ml
 - .gitignore для ML проекта
 - Git workflow с ветками main/develop
 
-Менторы смогут воспроизвести окружение по шагам из раздела "Воспроизведение".
+Менторы смогут воспроизвести окружение по шагам из раздела "Инструкция для ментора".
