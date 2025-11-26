@@ -163,16 +163,90 @@ docker run -it --rm -v $(pwd)/data:/app/data -v $(pwd)/models:/app/models wine-q
 ```
 
 ## Git workflow
-**Стратегия ветвления:**
-- `main` — стабильные релизы
-- `develop` — текущая разработка и интеграция
 
-**Настроенные игноры (.gitignore):**
-- Python: `__pycache__/`, `*.pyc`, `.venv/`
-- ML данные: `data/raw/*`, `data/processed/*` (кроме .dvc файлов)
-- Модели: `models/*.pkl`, `models/*.h5`
-- Эксперименты: `mlruns/`, `mlflow.db`, `wandb/`
-- IDE: `.vscode/`, `.idea/`
+### Стратегия ветвления (Git Flow Simplified)
+
+Используется упрощённая модель Git Flow:
+
+```
+main ─────●─────────────────●─────────────────●──── (стабильные релизы)
+           \               /                 /
+develop ────●───●───●───●───●───●───●───●───●────── (интеграция)
+                 \     /         \       /
+feature/xxx ──────●───●           ●─────●────────── (разработка фич)
+```
+
+**Основные ветки:**
+
+| Ветка | Назначение | Кто мержит |
+|-------|------------|------------|
+| `main` | Стабильные релизы, готовые к production | Merge из develop после тестирования |
+| `develop` | Интеграция всех фич, текущая разработка | Merge из feature/* веток |
+
+**Рабочие ветки:**
+
+| Паттерн | Назначение | Пример |
+|---------|------------|--------|
+| `feature/*` | Новая функциональность | `feature/add-mlflow-tracking` |
+| `fix/*` | Исправление багов | `fix/dvc-pipeline-error` |
+| `docs/*` | Документация | `docs/update-readme` |
+| `refactor/*` | Рефакторинг без изменения функциональности | `refactor/split-train-module` |
+
+### Workflow разработки
+
+```bash
+# 1. Создать ветку от develop
+git checkout develop
+git pull origin develop
+git checkout -b feature/my-feature
+
+# 2. Разработка + коммиты
+git add .
+git commit -m "feat: описание изменений"
+
+# 3. Перед мержем — обновить из develop
+git checkout develop
+git pull origin develop
+git checkout feature/my-feature
+git merge develop  # или rebase
+
+# 4. Merge в develop
+git checkout develop
+git merge feature/my-feature
+git push origin develop
+
+# 5. (Опционально) Удалить feature ветку
+git branch -d feature/my-feature
+```
+
+### Конвенция коммитов (Conventional Commits)
+
+```
+<type>: <description>
+
+Типы:
+- feat:     новая функциональность
+- fix:      исправление бага
+- docs:     документация
+- refactor: рефакторинг
+- test:     тесты
+- chore:    рутинные задачи (зависимости, конфиги)
+```
+
+**Примеры:**
+```
+feat: добавлен MLflow трекинг экспериментов
+fix: исправлена ошибка в DVC пайплайне
+docs: добавлены инструкции для ментора
+```
+
+### Настроенные игноры (.gitignore)
+
+- **Python:** `__pycache__/`, `*.pyc`, `.venv/`
+- **ML данные:** `data/raw/*`, `data/processed/*` (кроме .dvc файлов)
+- **Модели:** `models/*.pkl`, `models/*.h5`
+- **Эксперименты:** `mlruns/`, `mlflow.db`, `wandb/`
+- **IDE:** `.vscode/`, `.idea/`
 
 ## Скриншоты
 
