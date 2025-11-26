@@ -45,7 +45,8 @@ make train               # обучить модель с логирование
 - `make test` — pytest с покрытием.
 - `make data` — `dvc repro` + `dvc push` (данные и сплиты версионируются).
 - `make train` — обучение + логирование метрик/артефактов в MLflow.
-- `make experiments` — серия из 15+ экспериментов с разными моделями (MLflow).
+- `make pipeline` — полный DVC-пайплайн (split → train → experiments) с пушем кеша.
+- `make experiments` — серия из 15+ экспериментов с разными моделями (через Hydra+MLflow).
 - `make mlflow-ui` — поднять MLflow UI на `http://localhost:5000`.
 - `make docker-build` / `make docker-run` — собрать/запустить контейнер.
 
@@ -63,8 +64,13 @@ make train               # обучить модель с логирование
 ## Трекинг экспериментов
 - MLflow настроен в коде (`src/models/experiment_tracker.py`), дефолт: SQLite backend `mlflow.db`, артефакты `mlruns/`, эксперимент `wine-quality`.
 - Декоратор/контекст для автологирования — `log_experiment`/`mlflow_run`; утилита `get_data_version` тянет md5 из `dvc.lock` и кладёт в теги.
-- Скрипт `src/models/run_experiments.py` запускает 15+ конфигураций (LogReg, RF, GBoost, SVC, KNN, AdaBoost), логирует метрики/параметры, confusion matrix и отчёт; модели сохраняются как артефакты MLflow.
-- Команда `make experiments` воспроизводит серию; итоговые графики лежат в `reports/figures/` (например, `experiments_summary.png`).
+- Скрипт `src/models/run_experiments.py` запускает 15+ конфигураций (LogReg, RF, GBoost, SVC, KNN, AdaBoost), логирует метрики/параметры, confusion matrix и отчёт; модели сохраняются как артефакты MLflow, итоговый обзор — `reports/figures/experiments/experiments_summary.png`.
+- Команда `make experiments` воспроизводит серию через Hydra (конфиги в `configs/hydra/algorithms/*.yaml`, можно выбрать, например, `algorithms=quick`).
+
+## Оркестрация (ДЗ 4)
+- **Инструмент:** DVC Pipelines (кэширование, зависимостями и параллельным `dvc repro -j`). Стадии: `split` → `train` → `experiments`. Outputs: данные, модель `models/wine_quality_model.pkl`, артефакты экспериментов (`reports/figures/experiments/*`).
+- **Конфигурации:** Hydra (`configs/hydra/config.yaml` + алгоритм-группы). Можно менять набор моделей через `algorithms=<variant>` (например, `quick`), валидация уникальности/числа экспериментов в `src/pipelines/run_hydra_pipeline.py`.
+- **Мониторинг:** summary-файлы `experiments_top10.csv`, `status.txt` и график `experiments_summary.png`; MLflow UI для сравнения метрик/артефактов.
 
 ## Шаблон проекта
 Структура проекта основана на [cookiecutter-data-science](https://drivendata.github.io/cookiecutter-data-science/). Файл `cookiecutter.json` содержит метаданные проекта.

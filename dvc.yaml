@@ -1,9 +1,33 @@
 stages:
   split:
-    cmd: python3 -m src.data.make_dataset
+    cmd: poetry run python -m src.data.make_dataset
     deps:
     - data/raw/winequality-red.csv
     - src/data/make_dataset.py
     outs:
     - data/processed/test.csv
     - data/processed/train.csv
+  train:
+    cmd: poetry run python -m src.models.train_model
+    deps:
+    - data/processed/test.csv
+    - data/processed/train.csv
+    - src/models/train_model.py
+    - src/models/experiment_tracker.py
+    outs:
+    - models/wine_quality_model.pkl
+  experiments:
+    cmd: poetry run python -m src.pipelines.run_hydra_pipeline algorithms=full
+    deps:
+    - configs/hydra/algorithms/full.yaml
+    - configs/hydra/config.yaml
+    - data/processed/test.csv
+    - data/processed/train.csv
+    - src/models/experiment_tracker.py
+    - src/models/run_experiments.py
+    - src/pipelines/run_hydra_pipeline.py
+    outs:
+    - reports/figures/experiments/experiments_summary.png
+    - reports/figures/experiments/experiments_top10.csv
+    - reports/figures/experiments/status.txt
+    - reports/figures/experiments/val_split_info.txt

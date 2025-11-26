@@ -1,0 +1,92 @@
+name: full
+experiments:
+  - name: logreg_c0.5
+    estimator: logreg
+    params:
+      C: 0.5
+      max_iter: 500
+  - name: logreg_c1
+    estimator: logreg
+    params:
+      C: 1.0
+      max_iter: 500
+  - name: logreg_c2
+    estimator: logreg
+    params:
+      C: 2.0
+      max_iter: 500
+  - name: rf_50_depth8
+    estimator: random_forest
+    params:
+      n_estimators: 50
+      max_depth: 8
+      random_state: 42
+  - name: rf_100_depth10
+    estimator: random_forest
+    params:
+      n_estimators: 100
+      max_depth: 10
+      random_state: 42
+  - name: rf_150_depth12
+    estimator: random_forest
+    params:
+      n_estimators: 150
+      max_depth: 12
+      random_state: 42
+  - name: rf_200_depth14
+    estimator: random_forest
+    params:
+      n_estimators: 200
+      max_depth: 14
+      random_state: 123
+  - name: gb_50_lr0.05
+    estimator: gradient_boosting
+    params:
+      n_estimators: 50
+      learning_rate: 0.05
+      random_state: 42
+  - name: gb_100_lr0.1
+    estimator: gradient_boosting
+    params:
+      n_estimators: 100
+      learning_rate: 0.1
+      random_state: 42
+  - name: svc_linear_c1
+    estimator: svc
+    params:
+      kernel: linear
+      C: 1.0
+  - name: svc_rbf_c1_g01
+    estimator: svc
+    params:
+      kernel: rbf
+      C: 1.0
+      gamma: 0.1
+  - name: svc_rbf_c2_g005
+    estimator: svc
+    params:
+      kernel: rbf
+      C: 2.0
+      gamma: 0.05
+  - name: knn_5_uniform
+    estimator: knn
+    params:
+      n_neighbors: 5
+      weights: uniform
+  - name: knn_10_distance
+    estimator: knn
+    params:
+      n_neighbors: 10
+      weights: distance
+  - name: ada_50
+    estimator: adaboost
+    params:
+      n_estimators: 50
+      learning_rate: 0.8
+      random_state: 42
+  - name: ada_100
+    estimator: adaboost
+    params:
+      n_estimators: 100
+      learning_rate: 0.6
+      random_state: 42

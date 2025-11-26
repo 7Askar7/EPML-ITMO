@@ -1,7 +1,7 @@
 schema: '2.0'
 stages:
   split:
-    cmd: python3 -m src.data.make_dataset
+    cmd: poetry run python -m src.data.make_dataset
     deps:
     - path: data/raw/winequality-red.csv
       hash: md5
@@ -20,3 +20,75 @@ stages:
       hash: md5
       md5: bfde42a7396c6cbd72db5b337a7f2b96
       size: 73589
+  train:
+    cmd: poetry run python -m src.models.train_model
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 2bf1ec23359214c2dc56574fcb700836
+      size: 18556
+    - path: data/processed/train.csv
+      hash: md5
+      md5: bfde42a7396c6cbd72db5b337a7f2b96
+      size: 73589
+    - path: src/models/experiment_tracker.py
+      hash: md5
+      md5: 164e98f97c137bd16ed6d7af44acf59b
+      size: 5005
+    - path: src/models/train_model.py
+      hash: md5
+      md5: 89eda85beb6e08c9d1be542bbdcd3a78
+      size: 4031
+    outs:
+    - path: models/wine_quality_model.pkl
+      hash: md5
+      md5: 722a1eba7b801bf986b04fb22afab20c
+      size: 3996233
+  experiments:
+    cmd: poetry run python -m src.pipelines.run_hydra_pipeline algorithms=full
+    deps:
+    - path: configs/hydra/algorithms/full.yaml
+      hash: md5
+      md5: 8813dcb14d98ada6ed6fec3278ae8d55
+      size: 1847
+    - path: configs/hydra/config.yaml
+      hash: md5
+      md5: a45f3e257a275bc3564ade3ee59f2e86
+      size: 249
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 2bf1ec23359214c2dc56574fcb700836
+      size: 18556
+    - path: data/processed/train.csv
+      hash: md5
+      md5: bfde42a7396c6cbd72db5b337a7f2b96
+      size: 73589
+    - path: src/models/experiment_tracker.py
+      hash: md5
+      md5: 164e98f97c137bd16ed6d7af44acf59b
+      size: 5005
+    - path: src/models/run_experiments.py
+      hash: md5
+      md5: be964f43d6632ad902bde637e964bc1e
+      size: 10413
+    - path: src/pipelines/run_hydra_pipeline.py
+      hash: md5
+      md5: fb93cfd640651bc2944eeeb300c5a3e7
+      size: 1340
+    outs:
+    - path: reports/figures/experiments/experiments_summary.png
+      hash: md5
+      md5: 8e609c763470f3ad2a6be13477daf5df
+      size: 53465
+    - path: reports/figures/experiments/experiments_top10.csv
+      hash: md5
+      md5: 360672b7f341071a78b32383ecf62bd2
+      size: 782
+    - path: reports/figures/experiments/status.txt
+      hash: md5
+      md5: 1e06a99a7b82eb535eb31b181396ee91
+      size: 62
+    - path: reports/figures/experiments/val_split_info.txt
+      hash: md5
+      md5: 1c4e122cac59b55fbbab71a6486c51aa
+      size: 47

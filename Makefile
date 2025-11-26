@@ -1,4 +1,4 @@
-.PHONY: install format lint test data train experiments mlflow-ui clean docker-build docker-run help
+.PHONY: install format lint test data train experiments pipeline mlflow-ui clean docker-build docker-run help
 
 # Цвета для вывода
 GREEN  := \033[0;32m
@@ -44,14 +44,20 @@ train: ## Обучить модель с MLflow логированием
 	poetry run python -m src.models.train_model
 	@echo "$(GREEN)✓ Обучение завершено, артефакты в mlruns$(RESET)"
 
+pipeline: ## Полный DVC пайплайн (split -> train -> experiments) + push
+	@echo "$(GREEN)Запуск полного DVC пайплайна...$(RESET)"
+	poetry run dvc repro
+	poetry run dvc push
+	@echo "$(GREEN)✓ Пайплайн выполнен и отправлен в remote$(RESET)"
+
 mlflow-ui: ## Запустить MLflow UI (порт 5000)
 	@echo "$(GREEN)Стартуем MLflow UI на http://localhost:5000$(RESET)"
 	poetry run mlflow ui --backend-store-uri sqlite:///mlflow.db --default-artifact-root file:./mlruns --host 0.0.0.0 --port 5000
 
 experiments: ## Запустить пакет из 15+ экспериментов (логирование в MLflow)
 	@echo "$(GREEN)Запускаем серию экспериментов...$(RESET)"
-	poetry run python -m src.models.run_experiments
-	@echo "$(GREEN)✓ Эксперименты залогированы в MLflow$(RESET)"
+	poetry run python -m src.pipelines.run_hydra_pipeline algorithms=full
+	@echo "$(GREEN)✓ Эксперименты залогированы в MLflow и сохранены артефакты$(RESET)"
 
 pre-commit: ## Запустить pre-commit на всех файлах
 	@echo "$(GREEN)Запуск pre-commit hooks...$(RESET)"

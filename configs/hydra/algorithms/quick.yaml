@@ -1,0 +1,24 @@
+name: quick
+experiments:
+  - name: logreg_c1
+    estimator: logreg
+    params:
+      C: 1.0
+      max_iter: 300
+  - name: rf_50_depth8
+    estimator: random_forest
+    params:
+      n_estimators: 50
+      max_depth: 8
+      random_state: 42
+  - name: gb_50_lr0.05
+    estimator: gradient_boosting
+    params:
+      n_estimators: 50
+      learning_rate: 0.05
+      random_state: 42
+  - name: svc_linear_c1
+    estimator: svc
+    params:
+      kernel: linear
+      C: 1.0

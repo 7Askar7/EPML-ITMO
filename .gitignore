@@ -155,8 +155,10 @@ models/*.joblib
 
 # Reports and figures
 reports/figures/*
-!reports/figures/*.png
 !reports/figures/.gitkeep
+!reports/figures/*.png
+!reports/figures/experiments/
+!reports/figures/experiments/**
 reports/*.html
 
 # Notebooks (optional - uncomment if you don't want to track notebooks)
@@ -167,6 +169,7 @@ mlruns/
 .mlflow/
 mlflow.db
 wandb/
+.dvc/data
 .neptune/
 
 # DVC

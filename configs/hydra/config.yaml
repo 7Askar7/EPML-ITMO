@@ -1,0 +1,15 @@
+defaults:
+  - _self_
+  - algorithms: full
+
+experiment_name: wine-quality
+tracking_uri: sqlite:///mlflow.db
+artifact_location: file:./mlruns
+base_tags:
+  orchestrator: dvc
+  pipeline: hydra_experiments
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
