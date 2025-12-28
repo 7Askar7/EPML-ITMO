@@ -1,4 +1,4 @@
-.PHONY: install format lint test data train experiments pipeline mlflow-ui clean docker-build docker-run help
+.PHONY: install format lint test data train experiments pipeline mlflow-ui clean docker-build docker-run help clearml-server-up clearml-server-down clearml-pipeline clearml-experiments docs-serve docs-build docs-deploy
 
 # Цвета для вывода
 GREEN  := \033[0;32m
@@ -86,8 +86,41 @@ docker-run: ## Запустить Docker контейнер
 	docker run -it --rm \
 		-v $(PWD)/data:/app/data \
 		-v $(PWD)/models:/app/models \
-		wine-quality-ml:latest
+	wine-quality-ml:latest
 	@echo "$(GREEN)✓ Контейнер завершил работу$(RESET)"
+
+clearml-server-up: ## Поднять ClearML Server (docker-compose)
+	@echo "$(GREEN)Поднимаем ClearML Server...$(RESET)"
+	docker compose --env-file .env.clearml -f infra/clearml/docker-compose.yml up -d
+	@echo "$(GREEN)✓ ClearML доступен на http://localhost:8080$(RESET)"
+
+clearml-server-down: ## Остановить ClearML Server
+	@echo "$(GREEN)Останавливаем ClearML Server...$(RESET)"
+	docker compose --env-file .env.clearml -f infra/clearml/docker-compose.yml down
+	@echo "$(GREEN)✓ ClearML остановлен$(RESET)"
+
+clearml-pipeline: ## Запустить ClearML пайплайн (вариант quick)
+	@echo "$(GREEN)Запуск ClearML пайплайна (quick)...$(RESET)"
+	poetry run python -m src.pipelines.clearml_pipeline --variant quick
+	@echo "$(GREEN)✓ Пайплайн завершён, результаты в ClearML UI$(RESET)"
+
+clearml-experiments: ## Запустить ClearML пайплайн (полный набор экспериментов)
+	@echo "$(GREEN)Запуск ClearML пайплайна (full)...$(RESET)"
+	poetry run python -m src.pipelines.clearml_pipeline --variant full
+	@echo "$(GREEN)✓ Эксперименты залогированы в ClearML UI$(RESET)"
+
+clearml-cleanup: ## Очистить старые данные Elasticsearch (30 дней)
+	@echo "$(GREEN)Очистка Elasticsearch...$(RESET)"
+	@powershell -ExecutionPolicy Bypass -File infra/clearml/cleanup-elastic.ps1
+	@echo "$(GREEN)✓ Очистка завершена$(RESET)"
+
+clearml-disk-usage: ## Показать использование диска ClearML компонентами
+	@echo "$(GREEN)Использование диска ClearML:$(RESET)"
+	@du -sh infra/clearml/data/mongo 2>/dev/null || echo "MongoDB: N/A"
+	@du -sh infra/clearml/data/elastic 2>/dev/null || echo "Elasticsearch: N/A"
+	@du -sh infra/clearml/data/redis 2>/dev/null || echo "Redis: N/A"
+	@du -sh infra/clearml/files 2>/dev/null || echo "Files: N/A"
+	@echo "$(YELLOW)Для детальной информации: docker system df$(RESET)"
 
 setup: install ## Полная настройка проекта
 	@echo "$(GREEN)Проект настроен и готов к работе!$(RESET)"
@@ -95,3 +128,19 @@ setup: install ## Полная настройка проекта
 
 all: format lint test ## Запустить все проверки
 	@echo "$(GREEN)✓ Все проверки пройдены$(RESET)"
+
+# ============ Documentation ============
+
+docs-serve: ## Запустить локальный сервер документации
+	@echo "$(GREEN)Запуск MkDocs сервера на http://localhost:8000$(RESET)"
+	poetry run mkdocs serve
+
+docs-build: ## Собрать документацию
+	@echo "$(GREEN)Сборка документации...$(RESET)"
+	poetry run mkdocs build --strict
+	@echo "$(GREEN)✓ Документация собрана в site/$(RESET)"
+
+docs-deploy: ## Опубликовать документацию на GitHub Pages
+	@echo "$(GREEN)Публикация документации на GitHub Pages...$(RESET)"
+	poetry run mkdocs gh-deploy --force
+	@echo "$(GREEN)✓ Документация опубликована на https://7Askar7.github.io/EPML-ITMO/$(RESET)"

@@ -1,0 +1,145 @@
+x-clearml-common: &clearml-env
+  # Внутри Docker всегда используем Docker-имена
+  CLEARML_API_HOST: http://apiserver:8008
+  CLEARML_WEB_HOST: http://webserver:80
+  CLEARML_FILES_HOST: http://fileserver:8081
+  CLEARML_API_ACCESS_KEY: ${CLEARML_API_ACCESS_KEY:-devkey}
+  CLEARML_API_SECRET_KEY: ${CLEARML_API_SECRET_KEY:-devsecret}
+  CLEARML_ELASTIC_SERVICE_HOST: elasticsearch
+  CLEARML_MONGODB_SERVICE_HOST: mongo
+  CLEARML_REDIS_SERVICE_HOST: redis
+
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: clearml-mongo
+    restart: unless-stopped
+    command: --wiredTigerCacheSizeGB 0.5
+    volumes:
+      - ./data/mongo:/data/db
+    mem_limit: 1g
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: clearml-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - ./data/redis:/data
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.6
+    container_name: clearml-elastic
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+      - bootstrap.memory_lock=false
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=10gb
+      - cluster.routing.allocation.disk.watermark.high=5gb
+      - cluster.routing.allocation.disk.watermark.flood_stage=2gb
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - ./data/elastic:/usr/share/elasticsearch/data
+      - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  apiserver:
+    image: allegroai/clearml:1.16.2
+    container_name: clearml-apiserver
+    restart: unless-stopped
+    command: ["apiserver"]
+    environment:
+      <<: *clearml-env
+      CLEARML_API_HOST: http://127.0.0.1:8008
+      CLEARML__apiserver__auth__fixed_users__enabled: "true"
+      CLEARML__apiserver__auth__fixed_users__users: '[{"username": "admin", "password": "admin", "name": "Admin User"}]'
+      CLEARML__apiserver__auth__fixed_users__pass_hashed: "false"
+    ports:
+      - "8008:8008"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./logs:/var/log/clearml
+    mem_limit: 512m
+
+  webserver:
+    image: allegroai/clearml:1.16.2
+    container_name: clearml-webserver
+    restart: unless-stopped
+    command: ["webserver"]
+    environment:
+      <<: *clearml-env
+      CLEARML_API_HOST: http://apiserver:8008
+    ports:
+      - "8090:80"
+    depends_on:
+      - apiserver
+    mem_limit: 256m
+
+  fileserver:
+    image: allegroai/clearml:1.16.2
+    container_name: clearml-fileserver
+    restart: unless-stopped
+    command: ["fileserver"]
+    environment:
+      <<: *clearml-env
+      CLEARML_API_HOST: http://apiserver:8008
+      CLEARML_FILES_HOST: http://fileserver:8081
+    ports:
+      - "8091:8081"
+    depends_on:
+      - apiserver
+    volumes:
+      - ./files:/opt/clearml/fileserver/storage
+    mem_limit: 256m
+
+  agent:
+    image: allegroai/clearml-agent:latest
+    container_name: clearml-agent
+    restart: unless-stopped
+    environment:
+      <<: *clearml-env
+      CLEARML_API_HOST: http://apiserver:8008
+      CLEARML_WEB_HOST: http://webserver:80
+      CLEARML_FILES_HOST: http://fileserver:8081
+      CLEARML_AGENT_GIT_USER: ${CLEARML_AGENT_GIT_USER:-}
+      CLEARML_AGENT_GIT_PASS: ${CLEARML_AGENT_GIT_PASS:-}
+      CLEARML_DOCKER_DEFAULT_IMAGE: ${CLEARML_DOCKER_DEFAULT_IMAGE:-python:3.11-slim}
+      CLEARML_WORKER_NAME: ${CLEARML_WORKER_NAME:-epml-agent}
+      CLEARML_LOG_LEVEL: INFO
+      CLEARML_API_ACCESS_KEY: ${CLEARML_API_ACCESS_KEY:-devkey}
+      CLEARML_API_SECRET_KEY: ${CLEARML_API_SECRET_KEY:-devsecret}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./agent-cache:/root/.clearml
+    depends_on:
+      - apiserver
+    mem_limit: 512m

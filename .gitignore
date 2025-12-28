@@ -151,6 +151,7 @@ models/*.pt
 models/*.pth
 models/*.onnx
 models/*.joblib
+models/clearml/
 !models/.gitkeep
 
 # Reports and figures
@@ -159,6 +160,8 @@ reports/figures/*
 !reports/figures/*.png
 !reports/figures/experiments/
 !reports/figures/experiments/**
+!reports/figures/clearml/
+!reports/figures/clearml/**
 reports/*.html
 
 # Notebooks (optional - uncomment if you don't want to track notebooks)
@@ -171,6 +174,11 @@ mlflow.db
 wandb/
 .dvc/data
 .neptune/
+.clearml/
+infra/clearml/data/
+infra/clearml/files/
+infra/clearml/logs/
+infra/clearml/agent-cache/
 
 # DVC
 .dvc/cache

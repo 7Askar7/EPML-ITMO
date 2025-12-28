@@ -1,0 +1,44 @@
+project_name: "wine-quality-clearml"
+pipeline:
+  name: "wine-quality-pipeline"
+  queue: "services"           # имя очереди ClearML Agent для оркестрации
+  schedule: "0 6 * * *"       # cron-формат для автозапуска (по желанию)
+
+server:
+  api: "http://localhost:8008"
+  web: "http://localhost:8090"
+  files: "http://localhost:8091"
+
+auth:
+  # Credentials загружаются из переменных окружения (см. .env.clearml)
+  # CLEARML_API_ACCESS_KEY и CLEARML_API_SECRET_KEY
+  access_key: ""
+  secret_key: ""
+
+storage:
+  models_path: "http://localhost:8081"      # файловый сервер clearml
+  artifacts_path: "http://localhost:8081"
+
+datasets:
+  name: "winequality-red"
+  version: "1.0.0"
+  description: "UCI Wine Quality red subset tracked via DVC"
+
+models:
+  registry_name: "wine-quality-registry"
+  tags:
+    owner: "epml"
+    stage: "staging"
+
+experiments:
+  default_variant: "quick"
+  min_experiments: 4
+  tags:
+    orchestrator: "clearml"
+    source: "clearml_experiments.py"
+
+notifications:
+  # Slack webhook загружается из переменной окружения CLEARML_SLACK_WEBHOOK
+  slack_webhook: ""
+  on_success: true
+  on_failure: true

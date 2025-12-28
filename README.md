@@ -1,6 +1,12 @@
 # Wine Quality Prediction — Data Science workspace
 
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://7Askar7.github.io/EPML-ITMO/)
+[![CI](https://github.com/7Askar7/EPML-ITMO/actions/workflows/ci.yml/badge.svg)](https://github.com/7Askar7/EPML-ITMO/actions/workflows/ci.yml)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
+
 Полноценное окружение для экспериментов и учебных примеров по МЛ с упором на инженерные практики: по умолчанию включены форматирование, линтинг, статический анализ, тесты, Docker и шаблон для разворачивания новых проектов.
+
+**Документация:** [https://7Askar7.github.io/EPML-ITMO/](https://7Askar7.github.io/EPML-ITMO/)
 
 ## Кратко о проекте
 - Цель: предсказывать качество вина и показать, как оформить DS-проект по best practices.
@@ -94,7 +100,29 @@ git checkout develop && git merge feature/my-feature
 git push origin develop
 ```
 
-Подробнее: [docs/REPORT_HW1.md](docs/REPORT_HW1.md#git-workflow)
+## ClearML (HW5)
+
+- `cp .env.clearml.example .env.clearml` и заполнить ключи из ClearML UI.
+- `make clearml-server-up` — локальный ClearML сервер (8080/8008/8081).
+- `make clearml-pipeline` — быстрый прогон (Hydra quick) с логированием в ClearML.
+- `make clearml-experiments` — полный набор экспериментов (15+), публикация в Model Registry.
+- Подробности и скриншоты: `docs/REPORT_HW5.md`.
+
+## Документация (HW6)
+
+Документация проекта доступна онлайн и локально:
+
+- **Онлайн:** [https://7Askar7.github.io/EPML-ITMO/](https://7Askar7.github.io/EPML-ITMO/)
+- **Локально:** `make docs-serve` → http://localhost:8000
+
+Команды для работы с документацией:
+- `make docs-serve` — запустить локальный сервер MkDocs
+- `make docs-build` — собрать статическую документацию
+- `make docs-deploy` — опубликовать на GitHub Pages
+
+Документация автоматически обновляется при пуше в main/develop через GitHub Actions.
+
+Подробнее: [docs/REPORT_HW6.md](docs/REPORT_HW6.md)
 
 ## Шаблон проекта
 Структура проекта основана на [cookiecutter-data-science](https://drivendata.github.io/cookiecutter-data-science/). Файл `cookiecutter.json` содержит метаданные проекта.

@@ -1,0 +1,24 @@
+# Elasticsearch оптимизированная конфигурация для ClearML
+cluster.name: clearml-cluster
+node.name: clearml-node
+
+# Минимальное использование памяти для индексации
+indices.memory.index_buffer_size: 5%
+
+# Настройки жизненного цикла индексов
+indices.lifecycle.poll_interval: 10m
+
+# Отключение ненужных функций X-Pack
+xpack.security.enabled: false
+xpack.monitoring.enabled: false
+xpack.ml.enabled: false
+xpack.graph.enabled: false
+xpack.watcher.enabled: false
+
+# Настройки сети
+network.host: 0.0.0.0
+http.port: 9200
+
+# Оптимизация производительности
+action.auto_create_index: true
+bootstrap.memory_lock: false

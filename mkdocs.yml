@@ -1,0 +1,80 @@
+site_name: Wine Quality ML
+site_description: ML project for wine quality prediction with MLOps best practices
+site_author: ITMO EPML Student
+site_url: https://7Askar7.github.io/EPML-ITMO/
+
+repo_name: 7Askar7/EPML-ITMO
+repo_url: https://github.com/7Askar7/EPML-ITMO
+
+theme:
+  name: material
+  language: ru
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang:
+        - en
+        - ru
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Quick Start: quickstart.md
+  - API Reference:
+    - Data Processing: api/data.md
+    - Models: api/models.md
+    - Pipelines: api/pipelines.md
+    - MLOps: api/mlops.md
+  - Reports:
+    - HW1 - Project Setup: REPORT_HW1.md
+    - HW2 - Data Versioning: REPORT_HW2.md
+    - HW3 - Experiment Tracking: REPORT_HW3.md
+    - HW4 - Orchestration: REPORT_HW4.md
+    - HW5 - ClearML: REPORT_HW5.md
+    - HW6 - Documentation: REPORT_HW6.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/7Askar7/EPML-ITMO
+
+copyright: Copyright &copy; 2025 ITMO EPML
