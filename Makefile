@@ -92,7 +92,7 @@ docker-run: ## Запустить Docker контейнер
 clearml-server-up: ## Поднять ClearML Server (docker-compose)
 	@echo "$(GREEN)Поднимаем ClearML Server...$(RESET)"
 	docker compose --env-file .env.clearml -f infra/clearml/docker-compose.yml up -d
-	@echo "$(GREEN)✓ ClearML доступен на http://localhost:8080$(RESET)"
+	@echo "$(GREEN)✓ ClearML доступен на http://localhost:8090$(RESET)"
 
 clearml-server-down: ## Остановить ClearML Server
 	@echo "$(GREEN)Останавливаем ClearML Server...$(RESET)"

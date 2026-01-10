@@ -16,8 +16,8 @@ auth:
   secret_key: ""
 
 storage:
-  models_path: "http://localhost:8081"      # файловый сервер clearml
-  artifacts_path: "http://localhost:8081"
+  models_path: "http://localhost:8091"      # файловый сервер clearml
+  artifacts_path: "http://localhost:8091"
 
 datasets:
   name: "winequality-red"

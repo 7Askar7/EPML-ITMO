@@ -32,8 +32,8 @@ def load_clearml_config(config_path: Path | str | None = None) -> dict[str, Any]
             "pipeline": {"name": "wine-quality-pipeline", "queue": "services"},
             "server": {
                 "api": os.environ.get("CLEARML_API_HOST", "http://localhost:8008"),
-                "web": os.environ.get("CLEARML_WEB_HOST", "http://localhost:8080"),
-                "files": os.environ.get("CLEARML_FILES_HOST", "http://localhost:8081"),
+                "web": os.environ.get("CLEARML_WEB_HOST", "http://localhost:8090"),
+                "files": os.environ.get("CLEARML_FILES_HOST", "http://localhost:8091"),
             },
             "auth": {
                 "access_key": os.environ.get("CLEARML_API_ACCESS_KEY", ""),
@@ -56,10 +56,10 @@ def apply_clearml_env(cfg: dict[str, Any]) -> None:
         "CLEARML_API_HOST", server.get("api", "http://localhost:8008")
     )
     os.environ.setdefault(
-        "CLEARML_WEB_HOST", server.get("web", "http://localhost:8080")
+        "CLEARML_WEB_HOST", server.get("web", "http://localhost:8090")
     )
     os.environ.setdefault(
-        "CLEARML_FILES_HOST", server.get("files", "http://localhost:8081")
+        "CLEARML_FILES_HOST", server.get("files", "http://localhost:8091")
     )
     if auth.get("access_key"):
         os.environ.setdefault("CLEARML_API_ACCESS_KEY", str(auth["access_key"]))

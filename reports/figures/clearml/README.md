@@ -1,88 +1,33 @@
-# ClearML Screenshots для отчёта ДЗ 5
+# ClearML Screenshots (ДЗ 5)
 
-## Рекомендуемые скриншоты для добавления в отчёт
+Реальные скриншоты из ClearML Web UI (http://localhost:8090).
 
-Откройте ClearML Web UI: http://localhost:8090 (логин: admin, пароль: admin)
+## Содержимое
 
-### 1. experiments_list.png
-**Где:** Projects → wine-quality-clearml → Experiments
-**Что показать:** Список всех экспериментов в проекте
-- Pipeline task: wine-quality-pipeline
-- Leaderboard task: experiments-leaderboard
-- Experiment tasks: exp::baseline-lr, exp::optimized-lr, etc.
+| Файл | Описание |
+|------|----------|
+| `experiments_list.png` | Список экспериментов в проекте wine-quality-clearml |
+| `pipeline_execution.png` | Детали выполнения pipeline (source code, commit, execution) |
+| `experiment_metrics.png` | Метрики эксперимента (accuracy, f1_weighted) |
+| `artifacts.png` | Артефакты pipeline (dashboard, summary, status) |
+| `model_registry.png` | Model Registry с 4 моделями (ScikitLearn) |
+| `docker_containers.png` | Docker containers (7 сервисов running) |
 
-### 2. pipeline_task.png
-**Где:** Клик на task `wine-quality-pipeline` (ID: 9fb037471b8f4b9c850db0074c0875b6)
-**Что показать:** Детали pipeline task
-- Status: Completed
-- Execution time
-- Console logs
-- Configuration (data_version, orchestrator, source, variant)
+## Воспроизведение
 
-### 3. metrics_comparison.png
-**Где:** Compare → Select multiple experiment tasks → Scalars
-**Что показать:** Сравнение метрик между экспериментами
-- Accuracy
-- Precision
-- Recall
-- F1-score
-Графики должны показывать разницу между моделями
-
-### 4. confusion_matrix.png
-**Где:** Любой experiment task → Plots → Confusion Matrix
-**Что показать:** Confusion matrix для одного из экспериментов
-- Четкая визуализация матрицы ошибок
-- Названия классов качества вина
-
-### 5. model_registry.png
-**Где:** Models → wine-quality-registry
-**Что показать:** Список моделей в реестре
-- Версии моделей для разных экспериментов
-- Метаданные (tags, data_version)
-- Model artifacts
-
-### 6. clearml_server.png (опционально)
-**Где:** Docker Desktop или терминал
-**Что показать:** Все 7 работающих контейнеров ClearML
 ```bash
-docker ps --filter "name=clearml"
+# 1. Поднять ClearML Server
+make clearml-server-up
+
+# 2. Запустить pipeline
+make clearml-pipeline
+
+# 3. Открыть UI
+# http://localhost:8090 (admin/admin)
 ```
 
-### 7. clearml_dashboard.png (опционально)
-**Где:** Projects → wine-quality-clearml → Reports
-**Что показать:** Сводный дашборд с результатами экспериментов
-- Таблица лидерборда
-- Сводная статистика
+## Порты
 
----
-
-## Как сделать скриншоты
-
-### Вариант 1: Windows Snipping Tool
-1. Нажмите `Win + Shift + S`
-2. Выберите область для скриншота
-3. Сохраните в этой папке с соответствующим именем
-
-### Вариант 2: Браузерные DevTools (для чистых скриншотов)
-1. F12 → Toggle device toolbar (Ctrl+Shift+M)
-2. Screenshot → Capture full size screenshot
-3. Сохраните в этой папке
-
-### Вариант 3: ShareX (рекомендуется)
-1. Установите ShareX (бесплатно)
-2. Настройте автоматическое сохранение в эту папку
-3. Используйте `Ctrl + Print Screen`
-
----
-
-## После добавления скриншотов
-
-Убедитесь, что в отчёте [docs/REPORT_HW5.md](../../../docs/REPORT_HW5.md) ссылки на скриншоты корректны:
-
-```markdown
-![Experiments List](../reports/figures/clearml/experiments_list.png)
-![Pipeline Task](../reports/figures/clearml/pipeline_task.png)
-...
-```
-
-Проверьте отображение в GitHub или локально через Markdown preview.
+- API: http://localhost:8008
+- Web UI: http://localhost:8090
+- File Server: http://localhost:8091

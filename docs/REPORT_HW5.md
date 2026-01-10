@@ -18,7 +18,7 @@ poetry run dvc pull             # подтянуть winequality
 
 # 2) ClearML Server
 cp .env.clearml.example .env.clearml   # пропишите access/secret из UI
-make clearml-server-up                 # http://localhost:8080
+make clearml-server-up                 # http://localhost:8090
 
 # 3) Запуск пайплайнов
 make clearml-pipeline          # quick-вариант, автологирование в ClearML
@@ -72,6 +72,13 @@ apiserver:
 ```
 
 **Результат:** ✅ API Server запускается за 15 секунд без ошибок
+
+> **⚠️ Важное уточнение о версиях ClearML:**
+> - **ClearML Server** (Docker образ): `allegroai/clearml:1.16.2` - стабильная версия сервера
+> - **ClearML SDK** (Python пакет): `clearml==2.0.2` - клиентская библиотека в `pyproject.toml`
+>
+> Это **разные компоненты**, которые полностью совместимы. SDK 2.x работает с Server 1.x без проблем.
+> Откат Server на 1.16.2 был необходим из-за deadlock в Gunicorn при старте.
 
 ---
 
@@ -628,29 +635,88 @@ wine-quality-clearml/
 
 ---
 
-## 📸 Скриншоты ClearML
+## 📸 Скриншоты ClearML Web UI
 
-### ClearML Server (7 контейнеров)
+Все скриншоты сделаны из реального ClearML Web UI (http://localhost:8090).
 
-![ClearML Server](../reports/figures/clearml/clearml_server.png)
+### Скриншот 1: Список экспериментов
 
-*Все сервисы ClearML запущены: MongoDB, Redis, Elasticsearch, API Server, Web Server, File Server, Agent*
+**Projects → wine-quality-clearml → Experiments**
+
+Показывает все tasks в проекте:
+- `wine-quality-pipeline` (Controller, Completed)
+- `experiments-leaderboard` (Monitor)
+- `exp::svc_linear_c1`, `exp::gb_50_lr0.05`, `exp::rf_50_depth8`, `exp::logreg_c1` (Training)
+
+![Experiments List](../reports/figures/clearml/experiments_list.png)
 
 ---
 
-### ClearML Dashboard (Эксперименты)
+### Скриншот 2: Отработка Pipeline
 
-![ClearML Dashboard](../reports/figures/clearml/clearml_dashboard.png)
+**wine-quality-pipeline → Execution tab**
 
-*Интерфейс ClearML с логированными экспериментами, метриками и артефактами*
+Показывает детали выполнения:
+- Repository: https://github.com/7Askar7/EPML-ITMO.git
+- Commit ID: ea29897b4433491df806b393ff6f176fa0e79381
+- Script: `-m src.pipelines.clearml_pipeline --variant quick`
+- Status: **COMPLETED**
+
+![Pipeline Execution](../reports/figures/clearml/pipeline_execution.png)
 
 ---
 
-### ClearML Model Registry
+### Скриншот 3: Метрики эксперимента
 
-![ClearML Model Registry](../reports/figures/clearml/clearml_registry.png)
+**exp::svc_linear_c1 → Scalars tab**
 
-*Model Registry с зарегистрированными версиями моделей wine-quality*
+Логированные метрики:
+- `accuracy`
+- `f1_weighted`
+
+![Experiment Metrics](../reports/figures/clearml/experiment_metrics.png)
+
+---
+
+### Скриншот 4: Артефакты
+
+**wine-quality-pipeline → Artifacts tab**
+
+Загруженные артефакты:
+- `clearml_dashboard` (PNG, 36.94 KB)
+- `experiments_summary`
+- `experiments_top10`
+- `status`
+- `val_split_info`
+
+![Artifacts](../reports/figures/clearml/artifacts.png)
+
+---
+
+### Скриншот 5: Model Registry
+
+**Projects → wine-quality-clearml → MODELS tab**
+
+Зарегистрированные модели (ScikitLearn):
+- `exp::svc_linear_c1 - wine-quality-registry::svc_linear_c1`
+- `exp::gb_50_lr0.05 - wine-quality-registry::gb_50_lr0.05`
+- `exp::rf_50_depth8 - wine-quality-registry::rf_50_depth8`
+- `exp::logreg_c1 - wine-quality-registry::logreg_c1`
+
+![Model Registry](../reports/figures/clearml/model_registry.png)
+
+---
+
+### Скриншот 6: Docker контейнеры
+
+**Команда:** `docker ps --filter "name=clearml"`
+
+7 контейнеров running:
+- `clearml-agent`, `clearml-webserver`, `clearml-fileserver`, `clearml-apiserver`
+- `clearml-elastic` (healthy), `clearml-redis` (healthy), `clearml-mongo` (healthy)
+- Порты: 8008 (API), 8090 (Web), 8091 (Files)
+
+![Docker Containers](../reports/figures/clearml/docker_containers.png)
 
 ---
 

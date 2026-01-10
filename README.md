@@ -103,7 +103,7 @@ git push origin develop
 ## ClearML (HW5)
 
 - `cp .env.clearml.example .env.clearml` и заполнить ключи из ClearML UI.
-- `make clearml-server-up` — локальный ClearML сервер (8080/8008/8081).
+- `make clearml-server-up` — локальный ClearML сервер (Web: 8090, API: 8008, Files: 8091).
 - `make clearml-pipeline` — быстрый прогон (Hydra quick) с логированием в ClearML.
 - `make clearml-experiments` — полный набор экспериментов (15+), публикация в Model Registry.
 - Подробности и скриншоты: `docs/REPORT_HW5.md`.
