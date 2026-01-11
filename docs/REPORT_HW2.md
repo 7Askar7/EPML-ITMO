@@ -73,8 +73,16 @@ ls mlruns/                  # MLflow артефакты
 | `make mlflow-ui` | Запуск MLflow UI на порту 5000 |
 
 ## Скриншоты результатов
-- `reports/figures/dvc_pipeline.png` — схема DVC-пайплайна
-- `reports/figures/mlflow_run.png` — MLflow run с метрикой и моделью в Registry
+
+### DVC Pipeline
+Схема DVC-пайплайна (результат `dvc dag`):
+
+![DVC Pipeline](assets/images/dvc_pipeline.png)
+
+### MLflow Run
+MLflow run с метрикой и моделью в Registry:
+
+![MLflow Run](assets/images/mlflow_run.png)
 
 ## Итог
 ✅ **Выполненные требования:**

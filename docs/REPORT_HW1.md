@@ -248,19 +248,52 @@ docs: добавлены инструкции для ментора
 - **Эксперименты:** `mlruns/`, `mlflow.db`, `wandb/`
 - **IDE:** `.vscode/`, `.idea/`
 
-## Скриншоты
+## Результаты проверок
 
 ### Pre-commit hooks
 Результат выполнения `poetry run pre-commit run --all-files`:
 
-![Pre-commit hooks](../reports/figures/pre-commit.png)
+```
+trim trailing whitespace.................................................Passed
+fix end of files.........................................................Passed
+check yaml...............................................................Passed
+check json...............................................................Passed
+check for added large files..............................................Passed
+check for case conflicts.................................................Passed
+check for merge conflicts................................................Passed
+debug statements (python)................................................Passed
+mixed line ending........................................................Passed
+black....................................................................Passed
+isort....................................................................Passed
+ruff.....................................................................Passed
+```
 
 ### Pytest с покрытием
 Результат выполнения `poetry run pytest -v --cov=src`:
 
-![Pytest results](../reports/figures/tests.png)
+```
+============================= test session starts =============================
+platform win32 -- Python 3.11.4, pytest-8.3.3, pluggy-1.6.0
+cachedir: .pytest_cache
+rootdir: C:\Users\Askar\VS_CODE\EPML-ITMO
+configfile: pyproject.toml
 
-> **Примечание:** Для генерации скриншотов выполните команды выше и сохраните результат в `reports/figures/`.
+tests/test_data.py::test_split_data PASSED                               [ 16%]
+tests/test_data.py::test_load_data PASSED                                [ 33%]
+tests/test_models.py::test_load_processed_data PASSED                    [ 50%]
+tests/test_models.py::test_train_model_fits_and_predicts PASSED          [ 66%]
+tests/test_models.py::test_save_model_writes_pickle PASSED               [ 83%]
+tests/test_models.py::test_evaluate_model_outputs_metrics PASSED         [100%]
+
+---------- coverage: platform win32, python 3.11.4-final-0 -----------
+Name                               Stmts   Miss  Cover   Missing
+----------------------------------------------------------------
+src\data\make_dataset.py               8      0   100%
+src\models\train_model.py             26      0   100%
+----------------------------------------------------------------
+
+============================= 6 passed in 14.36s ==============================
+```
 
 ## Итог
 ✅ **Выполненные требования:**

@@ -91,10 +91,29 @@ with mlflow_run(run_name="experiment_1"):
 - `configure_mlflow()` — настраивает tracking URI и эксперимент
 - `ensure_experiment()` — создаёт эксперимент если не существует
 
-## Скриншоты
-- `reports/figures/experiments/experiments_summary.png` — топ-10 по accuracy
-- `reports/figures/experiments/cm_*.png` — confusion matrix для каждого эксперимента
-- `reports/figures/mlflow_run.png` — пример MLflow run
+## Скриншоты и результаты
+
+### Топ-10 моделей по accuracy
+Сравнение производительности всех моделей:
+
+![Experiments Summary](assets/images/experiments/experiments_summary.png)
+
+### Примеры Confusion Matrices
+Матрицы ошибок для лучших моделей:
+
+**Random Forest (150 деревьев, глубина 12):**
+![RF Confusion Matrix](assets/images/experiments/cm_rf_150_depth12.png)
+
+**Gradient Boosting (100 деревьев, lr=0.1):**
+![GB Confusion Matrix](assets/images/experiments/cm_gb_100_lr0.1.png)
+
+**Logistic Regression (C=1.0):**
+![LogReg Confusion Matrix](assets/images/experiments/cm_logreg_c1.png)
+
+### MLflow Run
+Пример MLflow run с метриками и артефактами:
+
+![MLflow Run](assets/images/mlflow_run.png)
 
 ## Итог
 ✅ **Выполненные требования:**

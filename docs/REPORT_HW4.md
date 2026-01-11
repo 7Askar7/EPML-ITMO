@@ -161,10 +161,29 @@ make mlflow-ui              # http://localhost:5000
 - Сравнение экспериментов
 - Просмотр артефактов
 
-## Скриншоты
-- `reports/figures/dvc_pipeline.png` — граф DVC пайплайна
-- `reports/figures/experiments/experiments_summary.png` — топ-10 моделей
-- `reports/figures/experiments/cm_*.png` — confusion matrices
+## Скриншоты и результаты
+
+### Граф DVC пайплайна
+Визуализация зависимостей между стадиями:
+
+![DVC Pipeline Graph](assets/images/dvc_pipeline.png)
+
+### Топ-10 моделей по accuracy
+Результаты автоматизированных экспериментов:
+
+![Experiments Summary](assets/images/experiments/experiments_summary.png)
+
+### Confusion Matrices
+Примеры матриц ошибок для различных моделей:
+
+**SVC с RBF ядром (C=1, gamma=0.1):**
+![SVC Confusion Matrix](assets/images/experiments/cm_svc_rbf_c1_g01.png)
+
+**KNN (k=5, uniform weights):**
+![KNN Confusion Matrix](assets/images/experiments/cm_knn_5_uniform.png)
+
+**AdaBoost (100 estimators):**
+![AdaBoost Confusion Matrix](assets/images/experiments/cm_ada_100.png)
 
 ## Итог
 ✅ **Выполненные требования:**
