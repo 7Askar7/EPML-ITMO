@@ -436,7 +436,7 @@ mem_limit: 768m
 - **Env-файл**: `.env.clearml.example` → `.env.clearml` с ключами (`CLEARML_API_ACCESS_KEY/SECRET_KEY`, хосты API/WEB/FILES, очередь агента).
 - **Конфиг для кода**: `configs/clearml/config.yaml` — единая точка: проект, пайплайн, queue, registry, notifications. Функция `apply_clearml_env` экспортирует хосты/ключи в окружение перед созданием Task.
 - **Аутентификация**: ключи берутся из UI (`Settings → Workspace → Create new credentials`), далее используются в compose, окружении и в `clearml_utils.init_task`.
-- **Скриншот стека**: `reports/figures/clearml/clearml_server.png`.
+- **Скриншот стека**: `reports/figures/clearml/docker_containers.png`.
 
 ---
 
@@ -445,7 +445,7 @@ mem_limit: 768m
 - **Обновлённый раннер**: `src/models/run_experiments.py` получил режим `log_to_clearml=True`. На каждый `ExperimentSpec` создаётся ClearML Task `exp::<name>` с автологированием параметров, метрик, конфьюжен-матриц и артефактов (report + cm). Артефакты из MLflow остаются без изменений.
 - **Сводная задача**: при логировании в ClearML создаётся мониторинговый Task с таблицей-лидербордом (top-10 из MLflow) и загрузкой артефактов (`experiments_summary.png`, CSV, status, валидационный сплит).
 - **Утилиты**: `src/mlops/clearml_utils.py` — init Task, таблицы, Confusion Matrix, registry, уведомления (webhook).
-- **Дашборд**: пример для отчёта `reports/figures/clearml/clearml_dashboard.png` (генерируется в пайплайне при наличии данных).
+- **Дашборд**: пример для отчёта `reports/figures/clearml/experiments_list.png` (список экспериментов в ClearML UI).
 - **Сравнение экспериментов**: таблица MLflow → ClearML (report_table) + артефакты, доступно из UI в разделе Reports.
 
 ---
@@ -454,20 +454,30 @@ mem_limit: 768m
 
 - **Авто-регистрация**: в `run_batch(..., register_models=True, log_to_clearml=True)` каждый эксперимент публикует веса в `wine-quality-registry::<exp_name>` через `register_model`.
 - **Метаданные**: к моделям прикладываются теги `data_version`, `source`, `variant` (из Hydra), а также гиперпараметры через `task.connect`.
-- **Версионирование**: каждая новая сборка -> новая версия в реестре, видна в UI (демо снимок `reports/figures/clearml/clearml_registry.png`).
+- **Версионирование**: каждая новая сборка -> новая версия в реестре, видна в UI (демо снимок `reports/figures/clearml/model_registry.png`).
 - **Сравнение моделей**: в UI через Model Registry + таблица-лидерборд в ClearML Task (accuracy/F1).
 
 ---
 
 ## Пайплайны и мониторинг
 
-- **Новый entrypoint**: `src/pipelines/clearml_pipeline.py` (TaskType.pipeline). Переиспользует Hydra-конфиги (`full|quick`), вызывает `run_batch` с ClearML-логированием и агрегирует результаты.
-- **Автозапуск**: cron-расписание задаётся в `configs/clearml/config.yaml` (`pipeline.schedule`); очередь агента берётся оттуда же.
+- **ClearML Pipeline с DAG**: `src/pipelines/clearml_pipeline.py` использует `PipelineDecorator` для создания настоящего ClearML Pipeline с визуальным графом зависимостей (DAG).
+- **Структура DAG** (7 шагов):
+  ```
+  step_load_data → [step_train_model x4 (parallel)] → step_evaluate → step_register
+  ```
+- **Компоненты пайплайна**:
+  - `step_load_data` — загрузка train/test данных, версионирование через MD5 hash
+  - `step_train_model` — обучение одной модели (logreg/rf/gb/svc), выполняются параллельно
+  - `step_evaluate` — сравнение всех моделей, выбор лучшей по accuracy
+  - `step_register` — регистрация лучшей модели в ClearML Model Registry
+- **Автозапуск**: cron-расписание задаётся в `configs/clearml/config.yaml` (`pipeline.schedule`); очередь агента — `services`.
 - **Уведомления**: если задан `CLEARML_SLACK_WEBHOOK`, пайплайн отправляет best-model summary после завершения.
 - **Make цели**:
   - `make clearml-pipeline` — быстрый прогон (quick)
   - `make clearml-experiments` — полный набор (15+ экспериментов, Hydra full)
   - `make clearml-server-up/down` — управление сервером
+- **Скриншот DAG**: см. раздел "Скриншот 7: Pipeline DAG"
 
 ---
 
@@ -648,7 +658,7 @@ wine-quality-clearml/
 - `experiments-leaderboard` (Monitor)
 - `exp::svc_linear_c1`, `exp::gb_50_lr0.05`, `exp::rf_50_depth8`, `exp::logreg_c1` (Training)
 
-![Experiments List](../reports/figures/clearml/experiments_list.png)
+![Experiments List](assets/images/clearml/experiments_list.png)
 
 ---
 
@@ -662,7 +672,7 @@ wine-quality-clearml/
 - Script: `-m src.pipelines.clearml_pipeline --variant quick`
 - Status: **COMPLETED**
 
-![Pipeline Execution](../reports/figures/clearml/pipeline_execution.png)
+![Pipeline Execution](assets/images/clearml/pipeline_execution.png)
 
 ---
 
@@ -674,7 +684,7 @@ wine-quality-clearml/
 - `accuracy`
 - `f1_weighted`
 
-![Experiment Metrics](../reports/figures/clearml/experiment_metrics.png)
+![Experiment Metrics](assets/images/clearml/experiment_metrics.png)
 
 ---
 
@@ -689,7 +699,7 @@ wine-quality-clearml/
 - `status`
 - `val_split_info`
 
-![Artifacts](../reports/figures/clearml/artifacts.png)
+![Artifacts](assets/images/clearml/artifacts.png)
 
 ---
 
@@ -703,7 +713,7 @@ wine-quality-clearml/
 - `exp::rf_50_depth8 - wine-quality-registry::rf_50_depth8`
 - `exp::logreg_c1 - wine-quality-registry::logreg_c1`
 
-![Model Registry](../reports/figures/clearml/model_registry.png)
+![Model Registry](assets/images/clearml/model_registry.png)
 
 ---
 
@@ -716,7 +726,38 @@ wine-quality-clearml/
 - `clearml-elastic` (healthy), `clearml-redis` (healthy), `clearml-mongo` (healthy)
 - Порты: 8008 (API), 8090 (Web), 8091 (Files)
 
-![Docker Containers](../reports/figures/clearml/docker_containers.png)
+![Docker Containers](assets/images/clearml/docker_containers.png)
+
+---
+
+### Скриншот 7: Pipeline DAG (Визуальный граф)
+
+**PIPELINES → wine-quality-clearml → wine-quality-pipeline**
+
+Визуализация DAG пайплайна с 7 шагами:
+
+```
+step_load_data (4s)
+      ↓
+┌─────┴─────┬─────────┬─────────┐
+↓           ↓         ↓         ↓
+step_train  step_train step_train step_train
+(logreg)    (rf)       (gb)       (svc)
+  21s         9s         8s         8s
+└─────┬─────┴─────────┴─────────┘
+      ↓
+step_evaluate (4s)
+      ↓
+step_register (4s)
+```
+
+**Особенности:**
+- Использует `PipelineDecorator` из ClearML SDK
+- 4 модели обучаются параллельно (видны стрелки из load_data в 4 train шага)
+- Автоматический выбор лучшей модели (GradientBoosting, accuracy=0.6531)
+- Регистрация победителя в Model Registry
+
+![Pipeline DAG](assets/images/clearml/pipeline_dag.png)
 
 ---
 
@@ -726,6 +767,7 @@ wine-quality-clearml/
 - ✅ Эксперименты и модели логируются в ClearML автоматически, оставаясь совместимыми с существующим MLflow/DVC стеком
 - ✅ Решены все критические проблемы с детальной документацией каждого fix
 - ✅ Оптимизировано потребление ресурсов (снижение на 40%)
+- ✅ **ClearML Pipeline с визуальным DAG** — 7 шагов, параллельное обучение 4 моделей, автовыбор лучшей
 - ✅ Pipeline успешно выполнен с exit code 0 и 4 экспериментами
 - ✅ Есть пайплайны, мониторинг, таблицы сравнения, артефакты и готовый канал уведомлений
 - ✅ Отчёт с подробным техническим описанием всех проблем и решений

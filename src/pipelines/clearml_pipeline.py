@@ -1,163 +1,338 @@
-"""ClearML-native pipeline that mirrors the Hydra/MLflow workflow."""
+"""ClearML Pipeline with visual DAG for wine-quality project.
 
-from __future__ import annotations
+Uses PipelineDecorator to create a real ClearML Pipeline
+with dependency graph visualization in UI.
+
+DAG structure:
+    load_data -> [train_logreg, train_rf, train_gb, train_svc] -> evaluate -> register
+"""
+
+# ruff: noqa: T201, N806, E402
 
 import argparse
+import os
 from pathlib import Path
-from typing import Any
 
-import pandas as pd
-from clearml import Task
-from omegaconf import OmegaConf
+# Load environment variables from .env.clearml
+_env_file = Path(__file__).resolve().parents[2] / ".env.clearml"
+if _env_file.exists():
+    with open(_env_file, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                os.environ.setdefault(key.strip(), value.strip())
 
-from src.mlops.clearml_utils import (
-    init_task,
-    load_clearml_config,
-    report_leaderboard,
-    send_notification,
-    upload_artifacts,
+from clearml import OutputModel, Task
+from clearml.automation import PipelineDecorator
+
+# Project configuration
+PROJECT_NAME = "wine-quality-clearml"
+PIPELINE_NAME = "wine-quality-pipeline"
+
+
+@PipelineDecorator.component(
+    return_values=["data_dict"],
+    cache=True,
+    task_type=Task.TaskTypes.data_processing,
 )
-from src.models.experiment_tracker import get_data_version
-from src.models.run_experiments import ExperimentSpec, run_batch
-from src.pipelines.run_hydra_pipeline import _validate_experiments
+def step_load_data(project_dir: str) -> dict:
+    """Step 1: Load and prepare data.
 
-PROJECT_DIR = Path(__file__).resolve().parents[2]
-DASHBOARD_DIR = PROJECT_DIR / "reports" / "figures" / "clearml"
+    Args:
+        project_dir: absolute path to project root
 
+    Returns:
+        dict with keys: X_train, y_train, X_test, y_test, data_version
+    """
+    import hashlib
+    from pathlib import Path
 
-def _load_experiments(variant: str) -> tuple[list[ExperimentSpec], int]:
-    """Load experiment specs from Hydra config without invoking CLI."""
-    base_cfg = OmegaConf.load(PROJECT_DIR / "configs" / "hydra" / "config.yaml")
-    algo_cfg = OmegaConf.load(
-        PROJECT_DIR / "configs" / "hydra" / "algorithms" / f"{variant}.yaml"
-    )
-    base_cfg.algorithms = algo_cfg
+    import pandas as pd
 
-    experiments_raw = OmegaConf.to_container(algo_cfg.experiments, resolve=True)
-    min_experiments = algo_cfg.get(
-        "min_experiments", base_cfg.algorithms.get("min_experiments", 1)
-    )
-    specs = _validate_experiments(experiments_raw, min_experiments=min_experiments)
-    return specs, min_experiments
+    processed_dir = Path(project_dir) / "data" / "processed"
 
+    train_path = processed_dir / "train.csv"
+    test_path = processed_dir / "test.csv"
 
-def _save_dashboard(summary: pd.DataFrame) -> Path:
-    """Create a lightweight dashboard image for the report."""
-    DASHBOARD_DIR.mkdir(parents=True, exist_ok=True)
-    plot_path = DASHBOARD_DIR / "clearml_dashboard.png"
+    # Load data
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
 
-    top = summary.head(8)
-    try:
-        import matplotlib.pyplot as plt
+    X_train = train_df.drop("quality", axis=1)
+    y_train = train_df["quality"]
+    X_test = test_df.drop("quality", axis=1)
+    y_test = test_df["quality"]
 
-        plt.figure(figsize=(8, 4))
-        plt.barh(top["tags.model_name"], top["metrics.accuracy"], color="#3f37c9")
-        plt.xlabel("Accuracy")
-        plt.ylabel("Model")
-        plt.title("ClearML Leaderboard (sample)")
-        plt.gca().invert_yaxis()
-        plt.tight_layout()
-        plt.savefig(plot_path, dpi=200)
-    except Exception:  # pragma: no cover
-        plot_path.write_text("Dashboard placeholder - matplotlib unavailable")
-    return plot_path
+    # Data version hash (not used for security, just versioning)
+    data_hash = hashlib.md5(  # noqa: S324
+        train_df.to_csv().encode(), usedforsecurity=False
+    ).hexdigest()[:8]
 
+    print(f"Loaded data: train={len(X_train)}, test={len(X_test)}")
+    print(f"Data version: {data_hash}")
 
-def run_clearml_pipeline(
-    *,
-    variant: str | None = None,
-    config_path: Path | str | None = None,
-    skip_registry: bool = False,
-) -> dict[str, Any]:
-    """Run the end-to-end workflow with ClearML tracking."""
-    cfg = load_clearml_config(config_path)
-    selected_variant = variant or cfg.get("experiments", {}).get(
-        "default_variant", "quick"
-    )
-    specs, min_experiments = _load_experiments(selected_variant)
-    base_tags: dict[str, str] = {
-        **cfg.get("experiments", {}).get("tags", {}),
-        "variant": selected_variant,
+    return {
+        "X_train": X_train.to_dict(),
+        "y_train": y_train.tolist(),
+        "X_test": X_test.to_dict(),
+        "y_test": y_test.tolist(),
+        "data_version": data_hash,
     }
-    data_version = get_data_version(PROJECT_DIR / "dvc.lock") or "unknown"
 
-    pipeline_task = init_task(
-        cfg,
-        task_name=cfg.get("pipeline", {}).get("name", "wine-quality-pipeline"),
-        task_type=Task.TaskTypes.controller,  # ClearML 2.0+ uses controller
-        tags=base_tags | {"data_version": data_version},
+
+@PipelineDecorator.component(
+    return_values=["model_result"],
+    cache=True,
+    task_type=Task.TaskTypes.training,
+)
+def step_train_model(
+    data_dict: dict, model_name: str, model_params: dict, project_dir: str
+) -> dict:
+    """Step 2: Train a single model.
+
+    Args:
+        data_dict: data from step_load_data
+        model_name: model name (logreg, rf, gb, svc)
+        model_params: model hyperparameters
+        project_dir: absolute path to project root
+
+    Returns:
+        dict with model and metrics
+    """
+    import pickle  # noqa: S403
+    from pathlib import Path
+
+    import pandas as pd
+    from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import accuracy_score, f1_score
+    from sklearn.svm import SVC
+
+    # Restore data from dict
+    X_train = pd.DataFrame(data_dict["X_train"])
+    y_train = pd.Series(data_dict["y_train"])
+    X_test = pd.DataFrame(data_dict["X_test"])
+    y_test = pd.Series(data_dict["y_test"])
+
+    # Select model class
+    model_classes = {
+        "logreg": LogisticRegression,
+        "rf": RandomForestClassifier,
+        "gb": GradientBoostingClassifier,
+        "svc": SVC,
+    }
+
+    model_class = model_classes.get(model_name)
+    if model_class is None:
+        raise ValueError(f"Unknown model: {model_name}")
+
+    # Train model
+    print(f"Training {model_name} with params: {model_params}")
+    model = model_class(**model_params)
+    model.fit(X_train, y_train)
+
+    # Predict and calculate metrics
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred, average="weighted")
+
+    print(f"{model_name}: accuracy={accuracy:.4f}, f1={f1:.4f}")
+
+    # Save model
+    models_dir = Path(project_dir) / "models" / "clearml"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    model_path = models_dir / f"{model_name}.pkl"
+    with open(model_path, "wb") as f:
+        pickle.dump(model, f)
+
+    return {
+        "name": model_name,
+        "model_path": str(model_path),
+        "accuracy": accuracy,
+        "f1": f1,
+        "params": model_params,
+    }
+
+
+@PipelineDecorator.component(
+    return_values=["best_model"],
+    task_type=Task.TaskTypes.qc,
+)
+def step_evaluate(
+    model_logreg: dict,
+    model_rf: dict,
+    model_gb: dict,
+    model_svc: dict,
+) -> dict:
+    """Step 3: Evaluate and select the best model.
+
+    Args:
+        model_*: training results for each model
+
+    Returns:
+        dict with the best model
+    """
+    models = [model_logreg, model_rf, model_gb, model_svc]
+
+    print("\n=== Model Comparison ===")
+    for m in models:
+        print(f"  {m['name']}: accuracy={m['accuracy']:.4f}, f1={m['f1']:.4f}")
+
+    # Select best by accuracy
+    best = max(models, key=lambda x: x["accuracy"])
+    print(f"\nBest model: {best['name']} (accuracy={best['accuracy']:.4f})")
+
+    return best
+
+
+@PipelineDecorator.component(
+    task_type=Task.TaskTypes.custom,
+)
+def step_register(best_model: dict, data_version: str) -> None:
+    """Step 4: Register the best model in ClearML Model Registry.
+
+    Args:
+        best_model: result from step_evaluate
+        data_version: data version hash
+    """
+    from clearml import Task
+
+    task = Task.current_task()
+    if task is None:
+        print("No active task, skipping registration")
+        return
+
+    model_path = best_model["model_path"]
+    model_name = best_model["name"]
+
+    print(f"Registering model: {model_name}")
+    print(f"  Path: {model_path}")
+    print(f"  Accuracy: {best_model['accuracy']:.4f}")
+    print(f"  Data version: {data_version}")
+
+    # Create OutputModel for registration
+    output_model = OutputModel(
+        task=task,
+        name=f"wine-quality-{model_name}",
+        framework="scikit-learn",
     )
-    pipeline_task.connect(
-        {"variant": selected_variant, "min_experiments": min_experiments}
+    output_model.update_weights(weights_filename=model_path)
+    output_model.update_design(config_dict=best_model["params"])
+
+    # Add metadata
+    task.set_parameter("best_model", model_name)
+    task.set_parameter("best_accuracy", best_model["accuracy"])
+    task.set_parameter("best_f1", best_model["f1"])
+    task.set_parameter("data_version", data_version)
+
+    print(f"Model registered: {output_model.id}")
+
+
+# Absolute path to project root (computed at module import time)
+PROJECT_DIR = str(Path(__file__).resolve().parents[2])
+
+
+@PipelineDecorator.pipeline(
+    name=PIPELINE_NAME,
+    project=PROJECT_NAME,
+    version="2.0",
+    pipeline_execution_queue="services",
+)
+def wine_quality_pipeline() -> None:
+    """Main ClearML Pipeline for wine-quality.
+
+    DAG structure:
+        load_data
+            |
+        +---+---+-------+-------+
+        |       |       |       |
+      logreg   rf      gb     svc   (parallel)
+        |       |       |       |
+        +---+---+-------+-------+
+            |
+        evaluate
+            |
+        register
+    """
+    # Step 1: Load data
+    data = step_load_data(project_dir=PROJECT_DIR)
+
+    # Step 2: Train models (parallel)
+    model_logreg = step_train_model(
+        data_dict=data,
+        model_name="logreg",
+        model_params={"C": 1.0, "max_iter": 300, "random_state": 42},
+        project_dir=PROJECT_DIR,
     )
 
-    results = run_batch(
-        experiments=specs,
-        base_tags=base_tags,
-        min_experiments=min_experiments,
-        log_to_clearml=True,
-        clearml_config_path=config_path,
-        register_models=not skip_registry,
+    model_rf = step_train_model(
+        data_dict=data,
+        model_name="rf",
+        model_params={"n_estimators": 50, "max_depth": 8, "random_state": 42},
+        project_dir=PROJECT_DIR,
     )
 
-    summary = results.get("summary")
-    artifacts = results.get("artifacts", {})
-    leaderboard = (
-        summary.head(10) if isinstance(summary, pd.DataFrame) else pd.DataFrame()
+    model_gb = step_train_model(
+        data_dict=data,
+        model_name="gb",
+        model_params={"n_estimators": 50, "learning_rate": 0.05, "random_state": 42},
+        project_dir=PROJECT_DIR,
     )
 
-    if not leaderboard.empty:
-        report_leaderboard(pipeline_task, leaderboard, title="ClearML leaderboard")
-    extra_artifacts = [art for art in artifacts.values() if isinstance(art, Path)]
-    if not leaderboard.empty:
-        extra_artifacts.append(_save_dashboard(leaderboard))
-    if extra_artifacts:
-        upload_artifacts(pipeline_task, extra_artifacts)
+    model_svc = step_train_model(
+        data_dict=data,
+        model_name="svc",
+        model_params={"C": 1.0, "kernel": "linear", "random_state": 42},
+        project_dir=PROJECT_DIR,
+    )
 
-    webhook = cfg.get("notifications", {}).get("slack_webhook")
-    if webhook:
-        best_row = leaderboard.iloc[0] if not leaderboard.empty else None
-        msg = (
-            f"ClearML pipeline finished. Best model: {best_row['tags.model_name']} "
-            f"(acc={best_row['metrics.accuracy']:.4f})"
-            if best_row is not None
-            else "ClearML pipeline finished."
-        )
-        send_notification(msg, webhook)
+    # Step 3: Evaluate and select best model
+    best_model = step_evaluate(
+        model_logreg=model_logreg,
+        model_rf=model_rf,
+        model_gb=model_gb,
+        model_svc=model_svc,
+    )
 
-    pipeline_task.close()
-    return results
+    # Step 4: Register best model
+    step_register(best_model=best_model, data_version=data["data_version"])
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="ClearML pipeline runner")
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description="ClearML Pipeline runner")
     parser.add_argument(
-        "--variant",
-        type=str,
-        default=None,
-        help="Hydra algorithms variant to use (full|quick)",
-    )
-    parser.add_argument(
-        "--config",
-        type=str,
-        default=None,
-        help="Path to ClearML config YAML (defaults to configs/clearml/config.yaml)",
-    )
-    parser.add_argument(
-        "--skip-registry",
+        "--local",
         action="store_true",
-        help="Do not push models to ClearML Model Registry",
+        default=True,
+        help="Run pipeline locally (default: True)",
+    )
+    parser.add_argument(
+        "--remote",
+        action="store_true",
+        help="Run pipeline on ClearML Agent queue",
     )
     return parser.parse_args()
 
 
-def main() -> None:  # pragma: no cover
+def main() -> None:
+    """Entry point for running the pipeline."""
     args = parse_args()
-    run_clearml_pipeline(
-        variant=args.variant,
-        config_path=args.config,
-        skip_registry=args.skip_registry,
-    )
+
+    if args.remote:
+        # Run on ClearML Agent
+        print("Starting pipeline on ClearML Agent queue...")
+        PipelineDecorator.set_default_execution_queue("services")
+        wine_quality_pipeline()
+    else:
+        # Run locally
+        print("Running pipeline locally...")
+        PipelineDecorator.run_locally()
+        wine_quality_pipeline()
+
+    print("\nPipeline completed!")
+    print("View results at: http://localhost:8090/projects/*/pipelines")
 
 
 if __name__ == "__main__":
